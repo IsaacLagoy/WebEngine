@@ -5,73 +5,63 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Intermediate blur overlay layer - creates a blurred version of the canvas */
-.blur-overlay {
-  backdrop-filter: blur(60px) saturate(180%);
-  -webkit-backdrop-filter: blur(60px) saturate(180%);
-  background: rgba(0, 0, 0, 0.01);
-  opacity: 1;
-  transform: translateZ(0);
-  will-change: backdrop-filter;
+/* Canvas wrapper */
+.canvas-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }
 
+.canvas-wrapper canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* Glass panel base styles */
 .glass-pane {
-  background: rgba(255, 255, 255, 0.45);
-  /* Remove backdrop-filter from glass-pane since blur-overlay handles it */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 0;
-  box-shadow: 
-    0 8px 32px 0 rgba(0, 0, 0, 0.37),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
   padding: 2rem 3rem;
   max-width: 600px;
   width: 100%;
-  position: relative;
-  transform: translateZ(0);
-  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.glass-pane::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3) 50%,
-    transparent
-  );
+/* Safari: glassmorphism effect */
+.glass-safari {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Chromium/other: solid opaque white */
+.glass-fallback {
+  background: rgb(255, 255, 255);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Keeps text sharp */
+.glass-content {
+  position: relative;
+  z-index: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-pane {
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 
-      0 8px 32px 0 rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 }

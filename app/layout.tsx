@@ -20,22 +20,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <div className="fixed inset-0 z-0" style={{ isolation: 'isolate' }}>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <div className="fixed inset-0 z-0">
           <WebGLCanvas />
         </div>
-        <div className="fixed inset-0 z-5 blur-overlay" style={{ isolation: 'isolate', pointerEvents: 'none' }}>
-        </div>
-        <div className="relative z-10" style={{ isolation: 'isolate' }}>
-          {children}
-        </div>
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );
