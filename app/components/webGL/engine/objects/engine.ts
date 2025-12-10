@@ -58,7 +58,7 @@ export class Engine {
         this.framebuffer = new FrameBuffer(this);
 
         // Set clear color (background color when clearing the screen)
-        gl.clearColor(0.2, 0.3, 0.3, 1.0);
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
         // Enable depth testing (objects closer to camera occlude farther ones)
         gl.enable(gl.DEPTH_TEST);
         // Enable back-face culling to reduce overdraw and z-fighting artifacts
