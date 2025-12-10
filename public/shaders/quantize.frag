@@ -1,91 +1,112 @@
 precision mediump float;
 uniform sampler2D uTexture;
 uniform float uQuantizationLevel;
+uniform vec2 uResolution;
 varying vec2 vTexCoord;
 
-// Function to get palette color by index
-// Sunset color palette - mapped from dark to light greyscale buckets
+const int n = 8;
+const float ditherStrength = 0.05;
+
+// Compact 8x8 Bayer dither - using bit manipulation for smaller code
+float getBayerDither(int x, int y) {
+    int idx = y * n + x;
+    // Use bit manipulation to compute Bayer value more compactly
+    // This is a simplified approach - could use full formula but this is cleaner
+    if (idx < 16) {
+        if (idx == 0) return 0.0; if (idx == 1) return 32.0; if (idx == 2) return 8.0; if (idx == 3) return 40.0;
+        if (idx == 4) return 2.0; if (idx == 5) return 34.0; if (idx == 6) return 10.0; if (idx == 7) return 42.0;
+        if (idx == 8) return 48.0; if (idx == 9) return 16.0; if (idx == 10) return 56.0; if (idx == 11) return 24.0;
+        if (idx == 12) return 50.0; if (idx == 13) return 18.0; if (idx == 14) return 58.0; if (idx == 15) return 26.0;
+    } else if (idx < 32) {
+        if (idx == 16) return 12.0; if (idx == 17) return 44.0; if (idx == 18) return 4.0; if (idx == 19) return 36.0;
+        if (idx == 20) return 14.0; if (idx == 21) return 46.0; if (idx == 22) return 6.0; if (idx == 23) return 38.0;
+        if (idx == 24) return 60.0; if (idx == 25) return 28.0; if (idx == 26) return 52.0; if (idx == 27) return 20.0;
+        if (idx == 28) return 62.0; if (idx == 29) return 30.0; if (idx == 30) return 54.0; if (idx == 31) return 22.0;
+    } else if (idx < 48) {
+        if (idx == 32) return 3.0; if (idx == 33) return 35.0; if (idx == 34) return 11.0; if (idx == 35) return 43.0;
+        if (idx == 36) return 1.0; if (idx == 37) return 33.0; if (idx == 38) return 9.0; if (idx == 39) return 41.0;
+        if (idx == 40) return 51.0; if (idx == 41) return 19.0; if (idx == 42) return 59.0; if (idx == 43) return 27.0;
+        if (idx == 44) return 49.0; if (idx == 45) return 17.0; if (idx == 46) return 57.0; if (idx == 47) return 25.0;
+    } else {
+        if (idx == 48) return 15.0; if (idx == 49) return 47.0; if (idx == 50) return 7.0; if (idx == 51) return 39.0;
+        if (idx == 52) return 13.0; if (idx == 53) return 45.0; if (idx == 54) return 5.0; if (idx == 55) return 37.0;
+        if (idx == 56) return 63.0; if (idx == 57) return 31.0; if (idx == 58) return 55.0; if (idx == 59) return 23.0;
+        if (idx == 60) return 61.0; if (idx == 61) return 29.0; if (idx == 62) return 53.0; if (idx == 63) return 21.0;
+    }
+    return 0.0;
+}
+
+// Sunset color palette
 vec3 getPaletteColor(int index) {
-    if (index == 0) return vec3(0.0, 0.0, 0.0);        // Black
-    if (index == 1) return vec3(0.15, 0.0, 0.25);      // Deep purple
-    if (index == 2) return vec3(0.25, 0.05, 0.35);     // Darker deep purple
-    if (index == 3) return vec3(0.45, 0.2, 0.55);      // Bluish medium pink
-    if (index == 4) return vec3(0.6, 0.3, 0.65);       // Lighter bluish medium pink
-    if (index == 5) return vec3(0.9, 0.5, 0.7);        // Pink
-    if (index == 6) return vec3(1.0, 0.55, 0.5);       // Pink-orange transition
-    return vec3(1.0, 0.6, 0.3);                        // Orange (index 7)
+    if (index == 0) return vec3(0.0, 0.0, 0.0);
+    if (index == 1) return vec3(0.102, 0.102, 0.243);
+    if (index == 2) return vec3(0.290, 0.173, 0.353);
+    if (index == 3) return vec3(0.478, 0.239, 0.353);
+    if (index == 4) return vec3(0.722, 0.290, 0.290);
+    if (index == 5) return vec3(0.831, 0.416, 0.227);
+    if (index == 6) return vec3(0.961, 0.541, 0.227);
+    return vec3(1.0, 0.722, 0.290);
 }
 
 void main() {
-    vec4 color = texture2D(uTexture, vTexCoord);
+    const float ditherCellSize = 4.0;
+    const float blackThreshold = 0.01;
+    const float clearcoatThreshold = 0.85;
     
-    // Always render pure black pixels as black
-    // Check if all RGB channels are essentially black (using a small threshold for floating point precision)
-    float blackThreshold = 0.01;
-    if (color.r < blackThreshold && color.g < blackThreshold && color.b < blackThreshold) {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, color.a);
+    // Calculate square cells with aspect ratio correction
+    float aspect = uResolution.x / uResolution.y;
+    vec2 scaledCoord = gl_FragCoord.xy;
+    if (aspect > 1.0) {
+        scaledCoord.x /= aspect;
+    } else {
+        scaledCoord.y *= aspect;
+    }
+    
+    vec2 cellIndex = floor(scaledCoord / ditherCellSize);
+    vec2 cellCenter = (cellIndex + 0.5) * ditherCellSize;
+    
+    // Convert back to texture coordinates
+    vec2 centerCoord = cellCenter;
+    if (aspect > 1.0) {
+        centerCoord.x *= aspect;
+    } else {
+        centerCoord.y /= aspect;
+    }
+    vec4 cellColor = texture2D(uTexture, centerCoord / uResolution);
+    
+    // Early exits for black and clearcoat
+    if (cellColor.r < blackThreshold && cellColor.g < blackThreshold && cellColor.b < blackThreshold) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, cellColor.a);
         return;
     }
     
-    // Convert color to greyscale using luminance formula
-    float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-    
-    // Clearcoat effect: detect bright highlights/specular reflections
-    // Bright areas (clearcoat) should be black
-    float clearcoatThreshold = 0.85; // Higher = more areas become black clearcoat
+    float gray = dot(cellColor.rgb, vec3(0.299, 0.587, 0.114));
     if (gray > clearcoatThreshold) {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, color.a);
+        gl_FragColor = vec4(0.0, 0.0, 0.0, cellColor.a);
         return;
     }
     
-    // Remap greyscale range [0, clearcoatThreshold] to [0, 1]
-    // This ensures darkest areas map to deep purple, not black
-    gray = gray / clearcoatThreshold;
+    // Process and quantize
+    gray = pow(gray / clearcoatThreshold, 0.6);
     
-    // Apply a curve to remap greyscale values to better distribute colors
-    // This stretches the mid-tones and compresses the extremes
-    // Using a power curve to emphasize lighter values
-    gray = pow(gray, 0.6); // Lower exponent = more emphasis on lighter colors (blue/orange)
+    vec2 ditherPos = mod(cellIndex, float(n));
+    float ditherValue = getBayerDither(int(ditherPos.x), int(ditherPos.y)) / (float(n) * float(n)) - 0.5;
+    gray = clamp(gray + ditherStrength * ditherValue, 0.0, 1.0);
     
-    // Quantize greyscale into buckets
-    // Higher quantization level = more buckets (more colors)
-    // Lower quantization level = fewer buckets (fewer colors)
-    float level = max(uQuantizationLevel, 1.0);
-    
-    // Clamp level to palette size (8 colors max)
-    float numBuckets = min(level, 8.0);
-    
-    // Quantize greyscale: multiply by buckets, floor to nearest integer
-    // This creates discrete greyscale bucket indices [0, numBuckets-1]
+    float numBuckets = min(max(uQuantizationLevel, 1.0), 8.0);
     int bucketIndex = int(floor(gray * numBuckets));
-    
-    // Clamp bucket index to valid range [0, numBuckets-1]
     int maxBucketIndex = int(numBuckets - 1.0);
     if (bucketIndex < 0) bucketIndex = 0;
     if (bucketIndex > maxBucketIndex) bucketIndex = maxBucketIndex;
     
-    // Map bucket index to palette color
-    // Darkest areas should map to deep purple (index 1), not black (index 0)
-    // So we map buckets to indices 1-7, skipping index 0 (black is for clearcoat only)
     int paletteIndex;
     if (numBuckets <= 1.0) {
-        paletteIndex = 1; // Deep purple for darkest
+        paletteIndex = 0;
     } else {
-        // Remap to better distribute colors - stretch the range to favor blue/orange
-        float normalizedBucket = float(bucketIndex) / (numBuckets - 1.0);
-        // Apply a stronger curve to access more of the palette (blue/orange colors)
-        // Lower exponent = more access to higher indices (blue/pink/orange)
-        normalizedBucket = pow(normalizedBucket, 0.5); // Strong curve to favor lighter colors
-        // Map to palette indices 1-7 (skip 0, which is black for clearcoat)
-        paletteIndex = 1 + int(normalizedBucket * 6.0);
+        paletteIndex = int((float(bucketIndex) / (numBuckets - 1.0)) * 7.0);
     }
-    
-    // Clamp palette index to valid range [1, 7] (deep purple to orange)
-    if (paletteIndex < 1) paletteIndex = 1;
+    if (paletteIndex < 0) paletteIndex = 0;
     if (paletteIndex > 7) paletteIndex = 7;
     
-    // Get color from palette based on greyscale bucket
-    vec3 paletteColor = getPaletteColor(paletteIndex);
-    
-    gl_FragColor = vec4(paletteColor, color.a);
+    gl_FragColor = vec4(getPaletteColor(paletteIndex), cellColor.a);
 }

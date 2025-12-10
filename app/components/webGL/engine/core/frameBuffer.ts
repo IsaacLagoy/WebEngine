@@ -34,6 +34,46 @@ export class FrameBuffer {
         this.gl().bindFramebuffer(this.gl().FRAMEBUFFER, null);
     }
 
+    /**
+     * Set this framebuffer as the render target
+     */
+    use() {
+        this.bind();
+    }
+
+    /**
+     * Render this framebuffer's texture to the screen using the given shader program
+     */
+    render(program: any, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
+        if (!this.colorTexture) return;
+        
+        const gl = this.gl();
+        const canvas = gl.canvas as HTMLCanvasElement;
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // Bind to screen (null framebuffer)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvasWidth, canvasHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.disable(gl.DEPTH_TEST);
+
+        program.use();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
+        const texLoc = gl.getUniformLocation(program.program, "uTexture");
+        if (texLoc !== null) {
+            gl.uniform1i(texLoc, 0);
+        }
+
+        if (beforeDraw) {
+            beforeDraw(gl, program.program);
+        }
+
+        this.engine.fullscreenQuad.draw(program.program);
+        gl.enable(gl.DEPTH_TEST);
+    }
+
     resize() {
         this.destroy();
         this.init();

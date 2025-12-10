@@ -110,10 +110,18 @@ export default function WebGLCanvas() {
 
         for (const node of nodes) node.update(dt);
 
-        engine.beginFrame();
-        engine.drawScene(program.program);
-        engine.endFrame();
+        // Set framebuffer as render location
+        engine.framebuffer.use();
+        engine.gl.viewport(0, 0, engine.width, engine.height);
+        engine.gl.clear(engine.gl.COLOR_BUFFER_BIT | engine.gl.DEPTH_BUFFER_BIT);
 
+        // Render scene to framebuffer using the scene's shader programs
+        scene.render(program.program);
+
+        // Unbind framebuffer so we can read from its texture
+        engine.framebuffer.unbind();
+
+        // Apply greyscale to framebuffer, output to secondaryFramebuffer
         if (engine.framebuffer.colorTexture && secondaryFramebuffer.colorTexture) {
           engine.blitToFramebuffer(
             engine.framebuffer.colorTexture,
@@ -122,13 +130,18 @@ export default function WebGLCanvas() {
           );
         }
 
+        // Set screen as render location
+        engine.use();
+
+        // Render framebuffer to screen using quantize program
         if (secondaryFramebuffer.colorTexture) {
-          engine.present(
-            secondaryFramebuffer.colorTexture,
+          secondaryFramebuffer.render(
             quantizeProgram,
             (glCtx, prog) => {
-              const loc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
-              if (loc) glCtx.uniform1f(loc, 4.0);
+              const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
+              if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
+              const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
+              if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
             }
           );
         }

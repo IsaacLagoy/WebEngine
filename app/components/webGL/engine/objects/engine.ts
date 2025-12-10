@@ -121,6 +121,13 @@ export class Engine {
     }
 
     /**
+     * Set screen as render location (bind to null framebuffer)
+     */
+    use() {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    }
+
+    /**
      * Present a texture to the screen using the given shader program.
      * The program is expected to sample uTexture at sampler2D unit 0.
      */

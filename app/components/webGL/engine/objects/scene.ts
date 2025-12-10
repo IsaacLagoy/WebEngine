@@ -45,5 +45,15 @@ export class Scene {
             node.draw(this.gl(), program, vpMatrix, camPos);
         }
     }
+
+    /**
+     * Render the scene using the given shader program
+     * @param program - Shader program to use for rendering
+     */
+    render(program: WebGLProgram) {
+        const gl = this.gl();
+        gl.useProgram(program);
+        this.draw(program, this.engine.camera);
+    }
 }
 
