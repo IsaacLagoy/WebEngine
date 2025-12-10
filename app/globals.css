@@ -24,3 +24,54 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Intermediate blur overlay layer - creates a blurred version of the canvas */
+.blur-overlay {
+  backdrop-filter: blur(60px) saturate(180%);
+  -webkit-backdrop-filter: blur(60px) saturate(180%);
+  background: rgba(0, 0, 0, 0.01);
+  opacity: 1;
+  transform: translateZ(0);
+  will-change: backdrop-filter;
+}
+
+.glass-pane {
+  background: rgba(255, 255, 255, 0.45);
+  /* Remove backdrop-filter from glass-pane since blur-overlay handles it */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  padding: 2rem 3rem;
+  max-width: 600px;
+  width: 100%;
+  position: relative;
+  transform: translateZ(0);
+  isolation: isolate;
+}
+
+.glass-pane::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-pane {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import WebGLCanvas from "./components/webGL/WebGLCanvas";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <div className="fixed inset-0 z-0" style={{ isolation: 'isolate' }}>
+          <WebGLCanvas />
+        </div>
+        <div className="fixed inset-0 z-5 blur-overlay" style={{ isolation: 'isolate', pointerEvents: 'none' }}>
+        </div>
+        <div className="relative z-10" style={{ isolation: 'isolate' }}>
+          {children}
+        </div>
       </body>
     </html>
   );
