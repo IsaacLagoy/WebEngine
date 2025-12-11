@@ -2,7 +2,6 @@ precision mediump float;
 uniform sampler2D uTexture;
 uniform float uQuantizationLevel;
 uniform vec2 uResolution;
-uniform float uAspectRatio;
 varying vec2 vTexCoord;
 
 const int n = 8;
@@ -54,25 +53,12 @@ void main() {
     const float blackThreshold = 0.01;
     const float clearcoatThreshold = 0.85;
     
-    // Calculate square cells with aspect ratio correction
-    vec2 scaledCoord = gl_FragCoord.xy;
-    if (uAspectRatio > 1.0) {
-        scaledCoord.x /= uAspectRatio;
-    } else {
-        scaledCoord.y *= uAspectRatio;
-    }
-    
-    vec2 cellIndex = floor(scaledCoord / ditherCellSize);
+    // Calculate dither cells (will be square in pixel space)
+    vec2 cellIndex = floor(gl_FragCoord.xy / ditherCellSize);
     vec2 cellCenter = (cellIndex + 0.5) * ditherCellSize;
     
-    // Convert back to texture coordinates
-    vec2 centerCoord = cellCenter;
-    if (uAspectRatio > 1.0) {
-        centerCoord.x *= uAspectRatio;
-    } else {
-        centerCoord.y /= uAspectRatio;
-    }
-    vec4 cellColor = texture2D(uTexture, centerCoord / uResolution);
+    // Sample texture from center of dither cell
+    vec4 cellColor = texture2D(uTexture, cellCenter / uResolution);
     
     // Early exits for black and clearcoat
     if (cellColor.r < blackThreshold && cellColor.g < blackThreshold && cellColor.b < blackThreshold) {

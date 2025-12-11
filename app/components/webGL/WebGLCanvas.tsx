@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Scene } from "./engine/objects/scene";
 import { Engine } from "./engine/objects/engine";
 import { Mesh } from "./engine/objects/mesh";
@@ -19,6 +19,7 @@ function getRandomPosition(rangeX: number, rangeY: number, minZ: number, maxZ: n
 
 export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,11 +43,33 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quad.frag"
+        "/shaders/quantize.frag"
       );
 
-      const sphereMesh = await Mesh.fromObj(engine, "/models/sphere.obj");
-      const cubeMesh = await Mesh.fromObj(engine, "/models/cube.obj");
+      // Load all available meshes from public/models so we can pick randomly
+      const modelPaths = [
+        "/models/art_table.obj",
+        "/models/bass.obj",
+        "/models/battery.obj",
+        "/models/brick.obj",
+        "/models/cube.obj",
+        "/models/flounder.obj",
+        "/models/herring.obj",
+        "/models/john.obj",
+        "/models/key.obj",
+        "/models/lamp.obj",
+        "/models/mug.obj",
+        "/models/office_chair.obj",
+        "/models/quad.obj",
+        "/models/sphere.obj",
+        "/models/squid.obj",
+        "/models/tilapia.obj",
+        "/models/tuna.obj",
+      ];
+
+      const meshes = await Promise.all(
+        modelPaths.map((path) => Mesh.fromObj(engine, path))
+      );
 
       const rockMaterial = new Material(engine);
       rockMaterial.setDiffuse("/materials/rocks/rocks_Color.jpg");
@@ -60,7 +83,7 @@ export default function WebGLCanvas() {
       barkMaterial.setSpecular("/materials/bark/bark_Roughness.jpg");
 
       const plainMaterial = new Material(engine);
-      plainMaterial.roughnessMultiplier = 0.1;
+      plainMaterial.roughnessMultiplier = 1.0;
       plainMaterial.metallic = 0.5;
       // plainMaterial.emission = [255, 1, 1];
       
@@ -74,12 +97,14 @@ export default function WebGLCanvas() {
       const nodes: Node[] = [];
 
       for (let i = 0; i < 1000; i++) {
+        const mesh = meshes[Math.floor(Math.random() * meshes.length)];
+
         const node = new Node(
           scene,
           getRandomPosition(50, 50, -50, 50),
           vec3.fromValues(0.5, 0.5, 0.5),
           quat.create(),
-          i % 2 === 0 ? cubeMesh : sphereMesh,
+          mesh,
           i % 3 === 0 ? rockMaterial : i % 3 === 1 ? plainMaterial : barkMaterial
         );
 
@@ -103,7 +128,18 @@ export default function WebGLCanvas() {
         scene.update(dt);
         scene.render(); // Renders to engine.framebuffer (with emission)
         engine.use(); // Set screen as render location
-        engine.framebuffer.render();
+        engine.framebuffer.render((gl, program) => {
+          // Set quantize shader uniforms
+          const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
+          if (quantizationLevelLoc !== null) {
+            gl.uniform1f(quantizationLevelLoc, 8.0);
+          }
+          
+          const resolutionLoc = gl.getUniformLocation(program, "uResolution");
+          if (resolutionLoc !== null) {
+            gl.uniform2f(resolutionLoc, engine.width, engine.height);
+          }
+        });
 
         requestAnimationFrame(render);
       }
@@ -111,17 +147,35 @@ export default function WebGLCanvas() {
       requestAnimationFrame(render);
     };
 
-    init().catch(console.error);
+    init()
+      .then(() => {
+        // All resources loaded, fade out overlay
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        // Even on error, hide overlay so user can see what's happening
+        setIsLoading(false);
+      });
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "block",
-      }}
-    />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "block",
+        }}
+      />
+      {/* Black overlay that fades out when loaded */}
+      <div
+        className={`absolute inset-0 bg-black transition-opacity duration-1000 ${
+          isLoading ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        style={{ zIndex: 1 }}
+      />
+    </div>
   );
 }
