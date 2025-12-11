@@ -8,7 +8,7 @@ export class Node {
     scene: Scene;
 
     mesh: Mesh;
-    material: Material;
+    material: Material | null;
 
     position: vec3;
     scale: vec3;
@@ -19,14 +19,14 @@ export class Node {
     velocity: vec3;
     angularVelocity: vec3;
 
-    constructor(scene: Scene, position: vec3, scale: vec3, rotation: quat, mesh: Mesh, material: Material) {
+    constructor(scene: Scene, position: vec3, scale: vec3, rotation: quat, mesh: Mesh, material?: Material) {
         this.scene = scene;
         this.position = position;
         this.scale = scale;
         this.rotation = rotation;
 
         this.mesh = mesh;
-        this.material = material;
+        this.material = material || null;
 
         this.velocity = vec3.create();
         this.angularVelocity = vec3.create();
@@ -85,10 +85,43 @@ export class Node {
         const lightDirLoc = this.scene.engine.getUniformLocation(program, "uLightDir");
         gl.uniform3fv(lightDirLoc, [0, 1, 1]);
 
-        // bind material and mesh
-        this.material.bindUniforms(program);
+        // bind material (if present) or use default white material
+        if (this.material) {
+            this.material.bindUniforms(program);
+        } else {
+            // Default white material for nodes without materials
+            const gl = this.scene.engine.gl;
+            
+            // Bind white textures (shader will detect white and use defaults)
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, Material.defaultWhiteTexture(gl));
+            const diffuseLoc = this.scene.engine.getUniformLocation(program, "uDiffuseMap");
+            if (diffuseLoc !== null) gl.uniform1i(diffuseLoc, 0);
+            
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, Material.defaultWhiteTexture(gl));
+            const normalLoc = this.scene.engine.getUniformLocation(program, "uNormalMap");
+            if (normalLoc !== null) gl.uniform1i(normalLoc, 1);
+            
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, Material.defaultWhiteTexture(gl));
+            const specLoc = this.scene.engine.getUniformLocation(program, "uRoughnessMap");
+            if (specLoc !== null) gl.uniform1i(specLoc, 2);
+            
+            // Default white material color (255, 255, 255 normalized)
+            const colorLoc = this.scene.engine.getUniformLocation(program, "uMaterialColor");
+            if (colorLoc !== null) gl.uniform3f(colorLoc, 1.0, 1.0, 1.0);
+            
+            // Default roughness, roughness multiplier and metallic
+            const roughnessLoc = this.scene.engine.getUniformLocation(program, "uRoughness");
+            if (roughnessLoc !== null) gl.uniform1f(roughnessLoc, 0.5);
+            const roughnessMultiplierLoc = this.scene.engine.getUniformLocation(program, "uRoughnessMultiplier");
+            if (roughnessMultiplierLoc !== null) gl.uniform1f(roughnessMultiplierLoc, 1.0);
+            const metallicLoc = this.scene.engine.getUniformLocation(program, "uMetallic");
+            if (metallicLoc !== null) gl.uniform1f(metallicLoc, 0.0);
+        }
+        
         this.mesh.bindAttributes(program);
-
         this.mesh.drawElements();
     }
 }

@@ -8,7 +8,6 @@ import { Node } from "./engine/objects/node";
 import { vec3, quat } from "gl-matrix";
 import { Material } from "./engine/objects/material";
 import { randomVec3 } from "./math/random";
-import { FrameBuffer } from "./engine/core/frameBuffer";
 import { Shader } from "./engine/core/shader";
 
 function getRandomPosition(rangeX: number, rangeY: number, minZ: number, maxZ: number) {
@@ -43,19 +42,8 @@ export default function WebGLCanvas() {
       const quantizeProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quantize.frag"
+        "/shaders/quad.frag"
       );
-
-      const greyscaleProgram = await Shader.create(
-        gl,
-        "/shaders/quad.vert",
-        "/shaders/greyscale.frag"
-      );
-
-      const secondaryFramebuffer = new FrameBuffer(engine);
-
-      let lastWidth = engine.width;
-      let lastHeight = engine.height;
 
       const sphereMesh = await Mesh.fromObj(engine, "/models/sphere.obj");
       const cubeMesh = await Mesh.fromObj(engine, "/models/cube.obj");
@@ -64,6 +52,7 @@ export default function WebGLCanvas() {
       rockMaterial.setDiffuse("/materials/rocks/rocks_Color.jpg");
       rockMaterial.setNormal("/materials/rocks/rocks_NormalGL.jpg");
       rockMaterial.setSpecular("/materials/rocks/rocks_Roughness.jpg");
+      rockMaterial.roughnessMultiplier = 0.1;
 
       const barkMaterial = new Material(engine);
       barkMaterial.setDiffuse("/materials/bark/bark_Color.jpg");
@@ -71,14 +60,14 @@ export default function WebGLCanvas() {
       barkMaterial.setSpecular("/materials/bark/bark_Roughness.jpg");
 
       const plainMaterial = new Material(engine);
-
+      plainMaterial.roughnessMultiplier = 0.1;
+      
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
       scene.camera.setPosition(vec3.fromValues(0, 0, 50));
       
-      // Assign programs to framebuffers (match C++ Frame which has shader member)
-      // secondaryFramebuffer will use quantizeProgram to render to screen
-      secondaryFramebuffer.program = quantizeProgram;
+      // Assign quantize program to engine framebuffer for final output
+      engine.framebuffer.program = quantizeProgram;
       
       const nodes: Node[] = [];
 
@@ -108,22 +97,19 @@ export default function WebGLCanvas() {
         const dt = Math.min((time - lastTime) / 1000, 0.1);
         lastTime = time;
 
-        engine.update();
-        secondaryFramebuffer.use();
-        secondaryFramebuffer.clear();
+        engine.update(); // Clears engine.framebuffer
         scene.update(dt);
-        scene.render();
-        secondaryFramebuffer.unbind();
+        scene.render(); // Renders to engine.framebuffer
         engine.use(); // Set screen as render location
-        secondaryFramebuffer.render(
-          (glCtx, prog) => {
-            const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
-            if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
-            const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
-            if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
-            const aspectRatioLoc = glCtx.getUniformLocation(prog, "uAspectRatio");
-            if (aspectRatioLoc) glCtx.uniform1f(aspectRatioLoc, engine.aspectRatio);
-          }
+        engine.framebuffer.render(
+          // (glCtx, prog) => {
+          //   const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
+          //   if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
+          //   const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
+          //   if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
+          //   const aspectRatioLoc = glCtx.getUniformLocation(prog, "uAspectRatio");
+          //   if (aspectRatioLoc) glCtx.uniform1f(aspectRatioLoc, engine.aspectRatio);
+          // }
         );
 
         requestAnimationFrame(render);

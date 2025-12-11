@@ -47,8 +47,11 @@ export class Material {
     specularMap?: WebGLTexture;  // Specular/roughness map
 
     // Material properties
-    diffuseColor: [number, number, number] = [1, 0.5, 0.5];  // RGB color (fallback if no texture)
-    shininess: number = 32.0;  // How shiny the surface is
+    // Material color in 0-255 range (will be normalized to 0-1 in shader)
+    color: [number, number, number] = [255, 255, 255];  // RGB color (0-255), tints albedo
+    roughness: number = 0.5;  // Roughness (0.0 = smooth, 1.0 = rough, used if no roughness map)
+    roughnessMultiplier: number = 1.0;  // Multiplier for roughness (1.0 = normal, >1.0 = rougher, <1.0 = shinier)
+    metallic: number = 0.0;  // Metallic (0.0 = dielectric, 1.0 = metal)
 
     // Shared white texture (fallback when no texture is provided)
     private static _defaultWhiteTexture: WebGLTexture | null = null;
@@ -76,41 +79,46 @@ export class Material {
     bindUniforms(program: WebGLProgram) {
         const gl = this.gl();
 
-        // diffuse
+        // Always bind textures (white fallback if missing)
+        // Shader will detect white textures and use defaults
+        
+        // Diffuse/albedo texture
         const diffuseLoc = this.engine.getUniformLocation(program, "uDiffuseMap");
-        const hasDiffuseLoc = this.engine.getUniformLocation(program, "uHasDiffuseMap");
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.diffuseMap || Material.defaultWhiteTexture(gl));
-        gl.uniform1i(diffuseLoc, 0);
-        gl.uniform1i(hasDiffuseLoc, this.diffuseMap ? 1 : 0);
+        if (diffuseLoc !== null) gl.uniform1i(diffuseLoc, 0);
 
-        // normal
+        // Normal map (white = flat, use vertex normal)
         const normalLoc = this.engine.getUniformLocation(program, "uNormalMap");
-        const hasNormalLoc = this.engine.getUniformLocation(program, "uHasNormalMap");
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, this.normalMap || Material.defaultWhiteTexture(gl));
-        gl.uniform1i(normalLoc, 1);
-        gl.uniform1i(hasNormalLoc, this.normalMap ? 1 : 0);
+        if (normalLoc !== null) gl.uniform1i(normalLoc, 1);
 
-        // specular
-        const specLoc = this.engine.getUniformLocation(program, "uSpecularMap");
-        const hasSpecLoc = this.engine.getUniformLocation(program, "uHasSpecularMap");
+        // Roughness map (white = use uniform value)
+        const specLoc = this.engine.getUniformLocation(program, "uRoughnessMap");
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, this.specularMap || Material.defaultWhiteTexture(gl));
-        gl.uniform1i(specLoc, 2);
-        gl.uniform1i(hasSpecLoc, this.specularMap ? 1 : 0);
+        if (specLoc !== null) gl.uniform1i(specLoc, 2);
 
-        // diffuse color & shininess
-        const colorLoc = this.engine.getUniformLocation(program, "uDiffuseColor");
-        gl.uniform3fv(colorLoc, this.diffuseColor);
-        const shininessLoc = this.engine.getUniformLocation(program, "uShininess");
-        gl.uniform1f(shininessLoc, this.shininess);
-
+        // Material color (normalize from 0-255 to 0-1)
+        const colorLoc = this.engine.getUniformLocation(program, "uMaterialColor");
+        if (colorLoc !== null) {
+            gl.uniform3f(colorLoc, this.color[0] / 255.0, this.color[1] / 255.0, this.color[2] / 255.0);
+        }
+        
+        // Roughness, roughness multiplier & metallic
+        const roughnessLoc = this.engine.getUniformLocation(program, "uRoughness");
+        if (roughnessLoc !== null) gl.uniform1f(roughnessLoc, this.roughness);
+        const roughnessMultiplierLoc = this.engine.getUniformLocation(program, "uRoughnessMultiplier");
+        if (roughnessMultiplierLoc !== null) gl.uniform1f(roughnessMultiplierLoc, this.roughnessMultiplier);
+        const metallicLoc = this.engine.getUniformLocation(program, "uMetallic");
+        if (metallicLoc !== null) gl.uniform1f(metallicLoc, this.metallic);
     }
 
     /**
      * Creates a 1x1 white texture as a fallback
      * Used when a material doesn't have a texture map
+     * Also used for nodes without materials
      */
     static defaultWhiteTexture(gl: WebGL2RenderingContext): WebGLTexture {
         if (!Material._defaultWhiteTexture) {
