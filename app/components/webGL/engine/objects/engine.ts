@@ -2,10 +2,8 @@ import { Mesh } from "./mesh";
 import { Material } from "./material";
 import { Scene } from "./scene";
 import { FrameBuffer } from "../core/frameBuffer";
-import { Camera } from "../core/camera";
-import { Program } from "../core/program";
 import { Quad } from "../core/quad";
-import { vec3 } from "gl-matrix";
+import { Shader } from "../core/shader";
 
 /**
  * Engine class - the main rendering engine
@@ -19,20 +17,17 @@ export class Engine {
     materials: Material[] = [];
     width: number = 0;
     height: number = 0;
-    camera: Camera;
+    aspectRatio: number = 1.0;  // Window aspect ratio (width / height)
 
     framebuffer: FrameBuffer;
-    quadShader: Program;
     fullscreenQuad: Quad;
+    quadShader: Shader;
 
     private uniformCache = new Map<string, WebGLUniformLocation | null>();
 
-    constructor(gl: WebGL2RenderingContext, quadShader: Program, fullscreenQuad: Quad) {
+    constructor(gl: WebGL2RenderingContext, quadShader: Shader, fullscreenQuad: Quad) {
         this.gl = gl;
-        
-        // Set up camera - positioned 50 units back on Z axis
-        this.camera = new Camera();
-        this.camera.setPosition(vec3.fromValues(0, 0, 50));
+        this.updateAspectRatio();
 
         this.quadShader = quadShader;
         this.fullscreenQuad = fullscreenQuad;
@@ -71,10 +66,9 @@ export class Engine {
      * Loads shaders and initializes all systems
      */
     static async create(gl: WebGL2RenderingContext): Promise<Engine> {
-        const quadShader = await Program.create(gl, "/shaders/quad.vert", "/shaders/quad.frag");
+        const quadShader = await Shader.create(gl, "/shaders/quad.vert", "/shaders/quad.frag");
         const fullscreenQuad = new Quad(gl);
         const engine = new Engine(gl, quadShader, fullscreenQuad);
-        
         return engine;
     }
 
@@ -91,7 +85,7 @@ export class Engine {
         if (this.width !== canvasWidth || this.height !== canvasHeight) {
             this.width = canvasWidth;
             this.height = canvasHeight;
-            this.camera.setAspect(canvasWidth / canvasHeight);
+            this.updateAspectRatio();
             if (this.framebuffer) {
                 this.framebuffer.resize();
             }
@@ -102,15 +96,9 @@ export class Engine {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 
-    /**
-     * Draw the current scene with the provided program. Assumes framebuffer is bound.
-     */
-    drawScene(program: WebGLProgram) {
-        const gl = this.gl;
-        gl.useProgram(program);
-        if (this.scene) {
-            this.scene.draw(program, this.camera);
-        }
+    update() {
+        this.framebuffer.use();
+        this.framebuffer.clear();
     }
 
     /**
@@ -131,7 +119,7 @@ export class Engine {
      * Present a texture to the screen using the given shader program.
      * The program is expected to sample uTexture at sampler2D unit 0.
      */
-    present(texture: WebGLTexture, program: Program, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
+    present(texture: WebGLTexture, program: Shader, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
         const gl = this.gl;
         const canvas = gl.canvas as HTMLCanvasElement;
         const canvasWidth = canvas.width;
@@ -162,7 +150,7 @@ export class Engine {
      * Render a texture to a target framebuffer using a fullscreen quad and the given program.
      * The program is expected to sample uTexture at sampler2D unit 0.
      */
-    blitToFramebuffer(texture: WebGLTexture, program: Program, targetFramebuffer: FrameBuffer, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
+    blitToFramebuffer(texture: WebGLTexture, program: Shader, targetFramebuffer: FrameBuffer, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
         const gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer.framebuffer);
         gl.viewport(0, 0, this.width, this.height);
@@ -215,8 +203,8 @@ export class Engine {
             this.width = displayWidth;
             this.height = displayHeight;
 
-            // Update camera aspect ratio
-            this.camera.setAspect(displayWidth / displayHeight);
+            // Update aspect ratio
+            this.updateAspectRatio();
 
             // Resize framebuffer to match new canvas size
             if (this.framebuffer) {
@@ -235,5 +223,20 @@ export class Engine {
             this.uniformCache.set(key, this.gl.getUniformLocation(program, name));
         }
         return this.uniformCache.get(key)!;
+    }
+
+    /**
+     * Update aspect ratio from current width/height
+     */
+    private updateAspectRatio() {
+        if (this.height > 0) {
+            this.aspectRatio = this.width / this.height;
+            this.scene?.camera.updateAspectRatio();
+        }
+    }
+
+    render() {
+        // Don't render engine.framebuffer - it's just cleared and empty
+        // The actual rendering happens via secondaryFramebuffer.render() in the main loop
     }
 }

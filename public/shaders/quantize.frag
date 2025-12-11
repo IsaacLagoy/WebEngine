@@ -2,6 +2,7 @@ precision mediump float;
 uniform sampler2D uTexture;
 uniform float uQuantizationLevel;
 uniform vec2 uResolution;
+uniform float uAspectRatio;
 varying vec2 vTexCoord;
 
 const int n = 8;
@@ -54,12 +55,11 @@ void main() {
     const float clearcoatThreshold = 0.85;
     
     // Calculate square cells with aspect ratio correction
-    float aspect = uResolution.x / uResolution.y;
     vec2 scaledCoord = gl_FragCoord.xy;
-    if (aspect > 1.0) {
-        scaledCoord.x /= aspect;
+    if (uAspectRatio > 1.0) {
+        scaledCoord.x /= uAspectRatio;
     } else {
-        scaledCoord.y *= aspect;
+        scaledCoord.y *= uAspectRatio;
     }
     
     vec2 cellIndex = floor(scaledCoord / ditherCellSize);
@@ -67,10 +67,10 @@ void main() {
     
     // Convert back to texture coordinates
     vec2 centerCoord = cellCenter;
-    if (aspect > 1.0) {
-        centerCoord.x *= aspect;
+    if (uAspectRatio > 1.0) {
+        centerCoord.x *= uAspectRatio;
     } else {
-        centerCoord.y /= aspect;
+        centerCoord.y /= uAspectRatio;
     }
     vec4 cellColor = texture2D(uTexture, centerCoord / uResolution);
     

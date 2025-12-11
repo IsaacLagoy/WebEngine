@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Program } from "./engine/core/program";
 import { Scene } from "./engine/objects/scene";
 import { Engine } from "./engine/objects/engine";
 import { Mesh } from "./engine/objects/mesh";
@@ -10,6 +9,7 @@ import { vec3, quat } from "gl-matrix";
 import { Material } from "./engine/objects/material";
 import { randomVec3 } from "./math/random";
 import { FrameBuffer } from "./engine/core/frameBuffer";
+import { Shader } from "./engine/core/shader";
 
 function getRandomPosition(rangeX: number, rangeY: number, minZ: number, maxZ: number) {
   const x = (Math.random() - 0.5) * rangeX;
@@ -32,7 +32,7 @@ export default function WebGLCanvas() {
     }
 
     const init = async () => {
-      const program = await Program.create(
+      const program = await Shader.create(
         gl,
         "/shaders/default.vert",
         "/shaders/default.frag"
@@ -40,13 +40,13 @@ export default function WebGLCanvas() {
 
       const engine = await Engine.create(gl);
 
-      const quantizeProgram = await Program.create(
+      const quantizeProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
         "/shaders/quantize.frag"
       );
 
-      const greyscaleProgram = await Program.create(
+      const greyscaleProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
         "/shaders/greyscale.frag"
@@ -72,7 +72,14 @@ export default function WebGLCanvas() {
 
       const plainMaterial = new Material(engine);
 
-      const scene = new Scene(engine);
+      // Match C++: Scene constructor takes shader
+      const scene = new Scene(engine, program);
+      scene.camera.setPosition(vec3.fromValues(0, 0, 50));
+      
+      // Assign programs to framebuffers (match C++ Frame which has shader member)
+      // secondaryFramebuffer will use quantizeProgram to render to screen
+      secondaryFramebuffer.program = quantizeProgram;
+      
       const nodes: Node[] = [];
 
       for (let i = 0; i < 1000; i++) {
@@ -98,53 +105,26 @@ export default function WebGLCanvas() {
 
       function render(time: number) {
         engine.resizeCanvas();
-
-        if (engine.width !== lastWidth || engine.height !== lastHeight) {
-          secondaryFramebuffer.resize();
-          lastWidth = engine.width;
-          lastHeight = engine.height;
-        }
-
         const dt = Math.min((time - lastTime) / 1000, 0.1);
         lastTime = time;
 
-        for (const node of nodes) node.update(dt);
-
-        // Set framebuffer as render location
-        engine.framebuffer.use();
-        engine.gl.viewport(0, 0, engine.width, engine.height);
-        engine.gl.clear(engine.gl.COLOR_BUFFER_BIT | engine.gl.DEPTH_BUFFER_BIT);
-
-        // Render scene to framebuffer using the scene's shader programs
-        scene.render(program.program);
-
-        // Unbind framebuffer so we can read from its texture
-        engine.framebuffer.unbind();
-
-        // Apply greyscale to framebuffer, output to secondaryFramebuffer
-        if (engine.framebuffer.colorTexture && secondaryFramebuffer.colorTexture) {
-          engine.blitToFramebuffer(
-            engine.framebuffer.colorTexture,
-            greyscaleProgram,
-            secondaryFramebuffer
-          );
-        }
-
-        // Set screen as render location
-        engine.use();
-
-        // Render framebuffer to screen using quantize program
-        if (secondaryFramebuffer.colorTexture) {
-          secondaryFramebuffer.render(
-            quantizeProgram,
-            (glCtx, prog) => {
-              const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
-              if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
-              const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
-              if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
-            }
-          );
-        }
+        engine.update();
+        secondaryFramebuffer.use();
+        secondaryFramebuffer.clear();
+        scene.update(dt);
+        scene.render();
+        secondaryFramebuffer.unbind();
+        engine.use(); // Set screen as render location
+        secondaryFramebuffer.render(
+          (glCtx, prog) => {
+            const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
+            if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
+            const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
+            if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
+            const aspectRatioLoc = glCtx.getUniformLocation(prog, "uAspectRatio");
+            if (aspectRatioLoc) glCtx.uniform1f(aspectRatioLoc, engine.aspectRatio);
+          }
+        );
 
         requestAnimationFrame(render);
       }

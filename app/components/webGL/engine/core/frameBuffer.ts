@@ -1,4 +1,6 @@
 import { Engine } from "../objects/engine";
+import { Shader } from "./shader";
+import { vec4 } from "gl-matrix";
 
 /**
  * FrameBuffer class - represents an off-screen rendering target
@@ -16,9 +18,14 @@ export class FrameBuffer {
     framebuffer: WebGLFramebuffer | null = null;
     colorTexture: WebGLTexture | null = null;  // The rendered image
     depthBuffer: WebGLRenderbuffer | null = null;  // Depth information
+    program: Shader | null = null;
+    lastWidth: number = 0;
+    lastHeight: number = 0;
 
     constructor(engine: Engine) {
         this.engine = engine;
+        this.lastWidth = engine.width;
+        this.lastHeight = engine.height;
         this.init();
     }
 
@@ -27,7 +34,12 @@ export class FrameBuffer {
     }
 
     bind() {
-        this.gl().bindFramebuffer(this.gl().FRAMEBUFFER, this.framebuffer);
+        const gl = this.gl();
+        // Match C++ FBO: bind() sets viewport automatically
+        gl.viewport(0, 0, this.engine.width, this.engine.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+        // Ensure depth testing is enabled for 3D rendering
+        gl.enable(gl.DEPTH_TEST);
     }
 
     unbind() {
@@ -42,40 +54,78 @@ export class FrameBuffer {
     }
 
     /**
-     * Render this framebuffer's texture to the screen using the given shader program
+     * Clear the framebuffer with the specified color
+     * @param color - Optional vec4 color [r, g, b, a]. Defaults to black [0, 0, 0, 1]
      */
-    render(program: any, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
-        if (!this.colorTexture) return;
+    clear(color?: vec4) {
+        const gl = this.gl();
+        this.bind();
+        gl.viewport(0, 0, this.engine.width, this.engine.height);
+        
+        if (color) {
+            gl.clearColor(color[0], color[1], color[2], color[3]);
+        } else {
+            gl.clearColor(0.0, 0.0, 0.0, 1.0); // Default: black
+        }
+        
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
+
+    /**
+     * Render this framebuffer's texture to the screen using the given shader program
+     * Matches C++ Frame::render() - saves/restores viewport
+     */
+    render(beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
+        if (!this.colorTexture || !this.program) return;
+        
+        // Check if engine size has changed and resize if needed
+        if (this.engine.width !== this.lastWidth || this.engine.height !== this.lastHeight) {
+            this.lastWidth = this.engine.width;
+            this.lastHeight = this.engine.height;
+            this.resize();
+            if (!this.colorTexture) return; // Resize might have failed
+        }
         
         const gl = this.gl();
+        
+        // Save current viewport (match C++ Frame::render())
+        const viewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
+        
         const canvas = gl.canvas as HTMLCanvasElement;
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
 
-        // Bind to screen (null framebuffer)
+        // Bind to screen (null framebuffer) - ensure we're rendering to screen
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, canvasWidth, canvasHeight);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.disable(gl.DEPTH_TEST);
 
-        program.use();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
-        const texLoc = gl.getUniformLocation(program.program, "uTexture");
-        if (texLoc !== null) {
-            gl.uniform1i(texLoc, 0);
+        if (!this.program) {
+            // Restore viewport before returning
+            gl.viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+            return;
         }
+
+        this.program.use();
+        // Use shader's bindTexture method (matches C++ shader->bind())
+        this.program.bindTexture("uTexture", this.colorTexture, 0);
 
         if (beforeDraw) {
-            beforeDraw(gl, program.program);
+            beforeDraw(gl, this.program.program);
         }
 
-        this.engine.fullscreenQuad.draw(program.program);
+        this.engine.fullscreenQuad.draw(this.program.program);
         gl.enable(gl.DEPTH_TEST);
+        
+        // Restore viewport (match C++ Frame::render())
+        gl.viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     }
 
     resize() {
         this.destroy();
+        this.lastWidth = this.engine.width;
+        this.lastHeight = this.engine.height;
         this.init();
     }
 

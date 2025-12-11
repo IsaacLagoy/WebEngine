@@ -70,9 +70,16 @@ export class Node {
         const mvpLoc = this.scene.engine.getUniformLocation(program, "uMVP");
         gl.uniformMatrix4fv(mvpLoc, false, mvp);
 
-        // camera position for specular
+        // camera position for specular (shader uses uViewPos)
+        const viewPosLoc = this.scene.engine.getUniformLocation(program, "uViewPos");
+        if (viewPosLoc !== null) {
+            gl.uniform3fv(viewPosLoc, cameraPos);
+        }
+        // Also set uCameraPos for backwards compatibility
         const camLoc = this.scene.engine.getUniformLocation(program, "uCameraPos");
-        gl.uniform3fv(camLoc, cameraPos);
+        if (camLoc !== null) {
+            gl.uniform3fv(camLoc, cameraPos);
+        }
 
         // directional light
         const lightDirLoc = this.scene.engine.getUniformLocation(program, "uLightDir");
