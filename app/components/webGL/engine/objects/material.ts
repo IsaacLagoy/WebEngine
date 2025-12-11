@@ -49,9 +49,11 @@ export class Material {
     // Material properties
     // Material color in 0-255 range (will be normalized to 0-1 in shader)
     color: [number, number, number] = [255, 255, 255];  // RGB color (0-255), tints albedo
+    emission: [number, number, number] = [0, 0, 0];  // Emission color (0-255), makes surface glow
     roughness: number = 0.5;  // Roughness (0.0 = smooth, 1.0 = rough, used if no roughness map)
     roughnessMultiplier: number = 1.0;  // Multiplier for roughness (1.0 = normal, >1.0 = rougher, <1.0 = shinier)
-    metallic: number = 0.0;  // Metallic (0.0 = dielectric, 1.0 = metal)
+    metallic: number = 0.0;  // Metallic (0.0 = dielectric, 1.0 = metal, uniform across surface)
+    metallicMultiplier: number = 1.0;  // Multiplier for metallic (1.0 = normal, >1.0 = more metallic, <1.0 = less metallic)
 
     // Shared white texture (fallback when no texture is provided)
     private static _defaultWhiteTexture: WebGLTexture | null = null;
@@ -106,13 +108,21 @@ export class Material {
             gl.uniform3f(colorLoc, this.color[0] / 255.0, this.color[1] / 255.0, this.color[2] / 255.0);
         }
         
-        // Roughness, roughness multiplier & metallic
+        // Emission color (normalize from 0-255 to 0-1)
+        const emissionLoc = this.engine.getUniformLocation(program, "uEmission");
+        if (emissionLoc !== null) {
+            gl.uniform3f(emissionLoc, this.emission[0] / 255.0, this.emission[1] / 255.0, this.emission[2] / 255.0);
+        }
+        
+        // Roughness, roughness multiplier, metallic & metallic multiplier
         const roughnessLoc = this.engine.getUniformLocation(program, "uRoughness");
         if (roughnessLoc !== null) gl.uniform1f(roughnessLoc, this.roughness);
         const roughnessMultiplierLoc = this.engine.getUniformLocation(program, "uRoughnessMultiplier");
         if (roughnessMultiplierLoc !== null) gl.uniform1f(roughnessMultiplierLoc, this.roughnessMultiplier);
         const metallicLoc = this.engine.getUniformLocation(program, "uMetallic");
         if (metallicLoc !== null) gl.uniform1f(metallicLoc, this.metallic);
+        const metallicMultiplierLoc = this.engine.getUniformLocation(program, "uMetallicMultiplier");
+        if (metallicMultiplierLoc !== null) gl.uniform1f(metallicMultiplierLoc, this.metallicMultiplier);
     }
 
     /**

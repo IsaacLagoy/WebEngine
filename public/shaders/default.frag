@@ -12,9 +12,11 @@ uniform vec3 uViewPos;
 // Material inputs
 uniform vec3 uMaterialColor;      // material color (0-1, tints albedo)
 uniform vec3 uAmbientColor;       // fallback ambient color
+uniform vec3 uEmission;           // emission color (0-1, makes surface glow)
 uniform float uRoughness;         // roughness (used if no roughness map)
 uniform float uRoughnessMultiplier; // multiplier for roughness (1.0 = normal, >1.0 = rougher, <1.0 = shinier)
-uniform float uMetallic;          // metallic value (0.0 = dielectric, 1.0 = metal)
+uniform float uMetallic;          // metallic value (0.0 = dielectric, 1.0 = metal, uniform across surface)
+uniform float uMetallicMultiplier; // multiplier for metallic (1.0 = normal, >1.0 = more metallic, <1.0 = less metallic)
 
 uniform sampler2D uDiffuseMap;    // albedo texture (white if not provided)
 uniform sampler2D uNormalMap;     // normal map (white if not provided, means flat)
@@ -101,10 +103,12 @@ void main() {
     // Apply roughness multiplier (allows making materials shinier or rougher)
     rough = rough * uRoughnessMultiplier;
     
-    float metallic = uMetallic;
+    // Metallic is uniform (no texture) - apply multiplier
+    float metallic = uMetallic * uMetallicMultiplier;
     
-    // Clamp roughness to prevent division issues
+    // Clamp roughness and metallic to valid ranges
     rough = clamp(rough, 0.04, 1.0);
+    metallic = clamp(metallic, 0.0, 1.0);
 
     // --- Lighting vectors ---
     vec3 L = normalize(uLightDir);
@@ -147,7 +151,10 @@ void main() {
     // Ambient (simple approximation - could use IBL here)
     vec3 ambient = uAmbientColor * albedo * 0.03; // Very low ambient for PBR
     
-    vec3 color = ambient + Lo;
+    // Emission (adds glow - not affected by lighting)
+    vec3 emission = uEmission;
+    
+    vec3 color = ambient + Lo + emission;
     
     // Tone mapping (simple Reinhard)
     color = color / (color + vec3(1.0));

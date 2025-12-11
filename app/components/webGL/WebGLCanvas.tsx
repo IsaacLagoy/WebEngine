@@ -39,7 +39,7 @@ export default function WebGLCanvas() {
 
       const engine = await Engine.create(gl);
 
-      const quantizeProgram = await Shader.create(
+      const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
         "/shaders/quad.frag"
@@ -52,7 +52,7 @@ export default function WebGLCanvas() {
       rockMaterial.setDiffuse("/materials/rocks/rocks_Color.jpg");
       rockMaterial.setNormal("/materials/rocks/rocks_NormalGL.jpg");
       rockMaterial.setSpecular("/materials/rocks/rocks_Roughness.jpg");
-      rockMaterial.roughnessMultiplier = 0.1;
+      // rockMaterial.roughnessMultiplier = 0.1;
 
       const barkMaterial = new Material(engine);
       barkMaterial.setDiffuse("/materials/bark/bark_Color.jpg");
@@ -61,13 +61,15 @@ export default function WebGLCanvas() {
 
       const plainMaterial = new Material(engine);
       plainMaterial.roughnessMultiplier = 0.1;
+      plainMaterial.metallic = 0.5;
+      // plainMaterial.emission = [255, 1, 1];
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
       scene.camera.setPosition(vec3.fromValues(0, 0, 50));
       
-      // Assign quantize program to engine framebuffer for final output
-      engine.framebuffer.program = quantizeProgram;
+      // Assign quad program to engine framebuffer for final output
+      engine.framebuffer.program = quadProgram;
       
       const nodes: Node[] = [];
 
@@ -99,18 +101,9 @@ export default function WebGLCanvas() {
 
         engine.update(); // Clears engine.framebuffer
         scene.update(dt);
-        scene.render(); // Renders to engine.framebuffer
+        scene.render(); // Renders to engine.framebuffer (with emission)
         engine.use(); // Set screen as render location
-        engine.framebuffer.render(
-          // (glCtx, prog) => {
-          //   const quantizeLoc = glCtx.getUniformLocation(prog, "uQuantizationLevel");
-          //   if (quantizeLoc) glCtx.uniform1f(quantizeLoc, 8.0);
-          //   const resolutionLoc = glCtx.getUniformLocation(prog, "uResolution");
-          //   if (resolutionLoc) glCtx.uniform2f(resolutionLoc, engine.width, engine.height);
-          //   const aspectRatioLoc = glCtx.getUniformLocation(prog, "uAspectRatio");
-          //   if (aspectRatioLoc) glCtx.uniform1f(aspectRatioLoc, engine.aspectRatio);
-          // }
-        );
+        engine.framebuffer.render();
 
         requestAnimationFrame(render);
       }

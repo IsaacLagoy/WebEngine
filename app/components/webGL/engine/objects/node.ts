@@ -112,13 +112,19 @@ export class Node {
             const colorLoc = this.scene.engine.getUniformLocation(program, "uMaterialColor");
             if (colorLoc !== null) gl.uniform3f(colorLoc, 1.0, 1.0, 1.0);
             
-            // Default roughness, roughness multiplier and metallic
+            // Default no emission
+            const emissionLoc = this.scene.engine.getUniformLocation(program, "uEmission");
+            if (emissionLoc !== null) gl.uniform3f(emissionLoc, 0.0, 0.0, 0.0);
+            
+            // Default roughness, roughness multiplier, metallic & metallic multiplier
             const roughnessLoc = this.scene.engine.getUniformLocation(program, "uRoughness");
             if (roughnessLoc !== null) gl.uniform1f(roughnessLoc, 0.5);
             const roughnessMultiplierLoc = this.scene.engine.getUniformLocation(program, "uRoughnessMultiplier");
             if (roughnessMultiplierLoc !== null) gl.uniform1f(roughnessMultiplierLoc, 1.0);
             const metallicLoc = this.scene.engine.getUniformLocation(program, "uMetallic");
             if (metallicLoc !== null) gl.uniform1f(metallicLoc, 0.0);
+            const metallicMultiplierLoc = this.scene.engine.getUniformLocation(program, "uMetallicMultiplier");
+            if (metallicMultiplierLoc !== null) gl.uniform1f(metallicMultiplierLoc, 1.0);
         }
         
         this.mesh.bindAttributes(program);
