@@ -3,18 +3,15 @@ attribute vec3 aNormal;
 attribute vec2 aTexCoord;
 attribute vec3 aTangent;
 
-// Instanced attributes (for instanced rendering)
+// Instanced attributes - required for all rendering
 // A 4x4 matrix is passed as 4 vec4 attributes (one per column)
 attribute vec4 aInstanceMatrix0;
 attribute vec4 aInstanceMatrix1;
 attribute vec4 aInstanceMatrix2;
 attribute vec4 aInstanceMatrix3;
 
-// Uniforms (for non-instanced rendering fallback)
-uniform mat4 uMVP;
-uniform mat4 uModel;
-uniform mat4 uViewProj;  // View-projection matrix (for instanced rendering)
-uniform bool uUseInstancing;  // Flag to indicate if instancing is enabled
+// Uniforms
+uniform mat4 uViewProj;  // View-projection matrix
 
 varying vec3 vNormal;
 varying vec3 vPosition;
@@ -32,18 +29,9 @@ mat4 getInstanceMatrix() {
 }
 
 void main() {
-    mat4 modelMatrix;
-    mat4 mvp;
-    
-    if (uUseInstancing) {
-        // Use instanced matrix (from vertex attributes)
-        modelMatrix = getInstanceMatrix();
-        mvp = uViewProj * modelMatrix;
-    } else {
-        // Fallback to uniform (non-instanced rendering)
-        modelMatrix = uModel;
-        mvp = uMVP;
-    }
+    // Always use instanced matrix
+    mat4 modelMatrix = getInstanceMatrix();
+    mat4 mvp = uViewProj * modelMatrix;
     
     vec4 worldPos = modelMatrix * vec4(aPosition, 1.0);
     vPosition = worldPos.xyz;

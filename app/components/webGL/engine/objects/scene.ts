@@ -199,27 +199,8 @@ export class Scene {
         const camPos = this.camera.position as [number, number, number];
         const gl = this.gl();
 
-        // Set uUseInstancing to false by default (for non-instanced nodes)
-        const useInstancingLoc = this.engine.getUniformLocation(program, "uUseInstancing");
-        if (useInstancingLoc !== null) {
-            gl.uniform1i(useInstancingLoc, 0);
-        }
-
-        // Draw ground plane first with culling disabled (if it exists)
-        // Ground plane uses non-instanced rendering for special handling
-        const groundPlane = this.nodes.find((n: any) => n.isGroundPlane);
-        if (groundPlane) {
-            gl.disable(gl.CULL_FACE);
-            groundPlane.draw(gl, program, vpMatrix, camPos);
-            gl.enable(gl.CULL_FACE);
-        }
-
-        // Draw all instance groups (batched rendering)
+        // Draw all instance groups (instancing is required for all nodes)
         for (const group of this.instanceGroups.values()) {
-            // Skip ground plane nodes (already drawn above)
-            if (group.nodes.some(n => (n as any).isGroundPlane)) {
-                continue;
-            }
             group.drawInstanced(gl, program, vpMatrix, camPos);
         }
     }

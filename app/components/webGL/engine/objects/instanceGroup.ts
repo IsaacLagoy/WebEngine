@@ -88,6 +88,7 @@ export class InstanceGroup {
     /**
      * Configure instanced vertex attributes for model matrices
      * A 4x4 matrix requires 4 vec4 attributes (one per column)
+     * Instancing is required - attributes must exist in shader
      */
     setupInstanceAttributes(program: WebGLProgram) {
         const gl = this.gl();
@@ -104,9 +105,9 @@ export class InstanceGroup {
             this.attribCache.set(program, attribs);
         }
 
-        // If attributes don't exist in shader, skip (fallback to non-instanced rendering)
+        // Instancing is required - attributes must exist
         if (attribs.instanceMatrix0 === -1) {
-            return false;
+            throw new Error("Instancing attributes not found in shader. Instancing is required for all nodes.");
         }
 
         // Bind instance data buffer
@@ -141,8 +142,6 @@ export class InstanceGroup {
         gl.vertexAttribDivisor(attribs.instanceMatrix3, 1);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        
-        return true;
     }
 
     /**
@@ -241,56 +240,23 @@ export class InstanceGroup {
         // Bind mesh attributes (sets up regular vertex attributes in VAO)
         this.mesh.bindAttributes(program);
         
-        // Check if shader supports instancing
-        const instanceMatrix0Loc = gl.getAttribLocation(program, "aInstanceMatrix0");
-        const hasInstancing = instanceMatrix0Loc !== -1;
-
-        // Set instancing flag
-        const useInstancingLoc = this.engine.getUniformLocation(program, "uUseInstancing");
-        if (useInstancingLoc !== null) {
-            gl.uniform1i(useInstancingLoc, hasInstancing ? 1 : 0);
-        }
+        // Bind VAO again (bindAttributes unbinds it)
+        gl.bindVertexArray(this.mesh.vao);
         
-        if (hasInstancing) {
-            // Bind VAO again (bindAttributes unbinds it)
-            gl.bindVertexArray(this.mesh.vao);
-            
-            // Setup instance attributes (must be done while VAO is bound)
-            this.setupInstanceAttributes(program);
-            
-            // Use instanced rendering
-            gl.drawElementsInstanced(
-                gl.TRIANGLES,
-                this.mesh.numIndices,
-                gl.UNSIGNED_SHORT,
-                0,
-                this.nodes.length
-            );
-            
-            // Cleanup instance attributes
-            this.disableInstanceAttributes(program);
-            gl.bindVertexArray(null);
-        } else {
-            // Fallback: render each instance individually (non-instanced)
-            // Make sure instancing flag is false
-            const useInstancingLoc = this.engine.getUniformLocation(program, "uUseInstancing");
-            if (useInstancingLoc !== null) {
-                gl.uniform1i(useInstancingLoc, 0);
-            }
-            
-            for (const node of this.nodes) {
-                node.updateMatrix();
-                
-                const modelLoc = this.engine.getUniformLocation(program, "uModel");
-                gl.uniformMatrix4fv(modelLoc, false, node.modelMatrix);
-                
-                const mvp = mat4.create();
-                mat4.multiply(mvp, viewProjMatrix, node.modelMatrix);
-                const mvpLoc = this.engine.getUniformLocation(program, "uMVP");
-                gl.uniformMatrix4fv(mvpLoc, false, mvp);
-                
-                this.mesh.drawElements();
-            }
-        }
+        // Setup instance attributes (must be done while VAO is bound)
+        this.setupInstanceAttributes(program);
+        
+        // Use instanced rendering (required - no fallback)
+        gl.drawElementsInstanced(
+            gl.TRIANGLES,
+            this.mesh.numIndices,
+            gl.UNSIGNED_SHORT,
+            0,
+            this.nodes.length
+        );
+        
+        // Cleanup instance attributes
+        this.disableInstanceAttributes(program);
+        gl.bindVertexArray(null);
     }
 }
