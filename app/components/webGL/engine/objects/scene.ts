@@ -3,13 +3,18 @@ import { Camera } from "../core/camera";
 import { Engine } from "./engine";
 import { Shader } from "../core/shader";
 import { PointLight } from "./pointLight";
+import { InstanceGroup } from "./instanceGroup";
+import { Mesh } from "./mesh";
+import { Material } from "./material";
 /**
  * Scene class - contains all objects in the 3D world
  * A scene is a collection of nodes (3D objects) that get rendered together
+ * Uses instancing to batch nodes with the same mesh+material for efficient rendering
  */
 export class Scene {
     engine: Engine;
     nodes: Node[] = [];  // All 3D objects in the scene
+    instanceGroups: Map<string, InstanceGroup> = new Map();  // Instance groups keyed by "meshId_materialId"
     pointLights: PointLight[] = [];  // Point lights in the scene
     shader: Shader | null = null;
     camera: Camera;
@@ -29,10 +34,51 @@ export class Scene {
     }
 
     /**
+     * Get a unique key for a mesh+material combination
+     */
+    private getInstanceGroupKey(mesh: Mesh, material: Material | null): string {
+        // Use object reference as ID (simple but effective)
+        const meshId = (mesh as any).__id || ((mesh as any).__id = Math.random().toString(36));
+        const materialId = material ? ((material as any).__id || ((material as any).__id = Math.random().toString(36))) : "null";
+        return `${meshId}_${materialId}`;
+    }
+
+    /**
      * Add a node (3D object) to the scene
+     * Automatically groups nodes by mesh+material for instanced rendering
      */
     add(node: Node) {
         this.nodes.push(node);
+        
+        // Add to appropriate instance group
+        const key = this.getInstanceGroupKey(node.mesh, node.material);
+        let group = this.instanceGroups.get(key);
+        if (!group) {
+            group = new InstanceGroup(this.engine, node.mesh, node.material);
+            this.instanceGroups.set(key, group);
+        }
+        group.addNode(node);
+    }
+
+    /**
+     * Remove a node from the scene
+     */
+    remove(node: Node) {
+        const index = this.nodes.indexOf(node);
+        if (index !== -1) {
+            this.nodes.splice(index, 1);
+            
+            // Remove from instance group
+            const key = this.getInstanceGroupKey(node.mesh, node.material);
+            const group = this.instanceGroups.get(key);
+            if (group) {
+                group.removeNode(node);
+                // Remove empty groups
+                if (group.nodes.length === 0) {
+                    this.instanceGroups.delete(key);
+                }
+            }
+        }
     }
 
     /**
@@ -141,7 +187,7 @@ export class Scene {
     }
 
     /**
-     * Draws all nodes in the scene
+     * Draws all nodes in the scene using instanced rendering where possible
      * @param program - Shader program to use for rendering
      */
     draw(program: WebGLProgram) {
@@ -153,7 +199,14 @@ export class Scene {
         const camPos = this.camera.position as [number, number, number];
         const gl = this.gl();
 
+        // Set uUseInstancing to false by default (for non-instanced nodes)
+        const useInstancingLoc = this.engine.getUniformLocation(program, "uUseInstancing");
+        if (useInstancingLoc !== null) {
+            gl.uniform1i(useInstancingLoc, 0);
+        }
+
         // Draw ground plane first with culling disabled (if it exists)
+        // Ground plane uses non-instanced rendering for special handling
         const groundPlane = this.nodes.find((n: any) => n.isGroundPlane);
         if (groundPlane) {
             gl.disable(gl.CULL_FACE);
@@ -161,10 +214,13 @@ export class Scene {
             gl.enable(gl.CULL_FACE);
         }
 
-        // Draw each object in the scene (excluding ground plane if we already drew it)
-        for (const node of this.nodes) {
-            if ((node as any).isGroundPlane) continue; // Skip ground plane, already drawn
-            node.draw(gl, program, vpMatrix, camPos);
+        // Draw all instance groups (batched rendering)
+        for (const group of this.instanceGroups.values()) {
+            // Skip ground plane nodes (already drawn above)
+            if (group.nodes.some(n => (n as any).isGroundPlane)) {
+                continue;
+            }
+            group.drawInstanced(gl, program, vpMatrix, camPos);
         }
     }
 

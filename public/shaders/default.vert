@@ -3,21 +3,54 @@ attribute vec3 aNormal;
 attribute vec2 aTexCoord;
 attribute vec3 aTangent;
 
+// Instanced attributes (for instanced rendering)
+// A 4x4 matrix is passed as 4 vec4 attributes (one per column)
+attribute vec4 aInstanceMatrix0;
+attribute vec4 aInstanceMatrix1;
+attribute vec4 aInstanceMatrix2;
+attribute vec4 aInstanceMatrix3;
+
+// Uniforms (for non-instanced rendering fallback)
 uniform mat4 uMVP;
 uniform mat4 uModel;
+uniform mat4 uViewProj;  // View-projection matrix (for instanced rendering)
+uniform bool uUseInstancing;  // Flag to indicate if instancing is enabled
 
 varying vec3 vNormal;
 varying vec3 vPosition;
 varying vec2 vTexCoord;
 varying mat3 vTBN;
 
+// Reconstruct 4x4 matrix from 4 vec4 columns
+mat4 getInstanceMatrix() {
+    return mat4(
+        aInstanceMatrix0,
+        aInstanceMatrix1,
+        aInstanceMatrix2,
+        aInstanceMatrix3
+    );
+}
+
 void main() {
-    vec4 worldPos = uModel * vec4(aPosition, 1.0);
+    mat4 modelMatrix;
+    mat4 mvp;
+    
+    if (uUseInstancing) {
+        // Use instanced matrix (from vertex attributes)
+        modelMatrix = getInstanceMatrix();
+        mvp = uViewProj * modelMatrix;
+    } else {
+        // Fallback to uniform (non-instanced rendering)
+        modelMatrix = uModel;
+        mvp = uMVP;
+    }
+    
+    vec4 worldPos = modelMatrix * vec4(aPosition, 1.0);
     vPosition = worldPos.xyz;
 
     // transform normal and tangent to world space
-    vec3 N = normalize(mat3(uModel) * aNormal);
-    vec3 T = normalize(mat3(uModel) * aTangent);
+    vec3 N = normalize(mat3(modelMatrix) * aNormal);
+    vec3 T = normalize(mat3(modelMatrix) * aTangent);
     vec3 B = cross(N, T);  // bitangent
 
     vTBN = mat3(T, B, N);
@@ -25,6 +58,6 @@ void main() {
     // pass texture coordinates to fragment shader
     vTexCoord = aTexCoord;
 
-    vNormal = mat3(uModel) * aNormal; // transform normal to world space
-    gl_Position = uMVP * vec4(aPosition, 1.0);
+    vNormal = mat3(modelMatrix) * aNormal; // transform normal to world space
+    gl_Position = mvp * vec4(aPosition, 1.0);
 }

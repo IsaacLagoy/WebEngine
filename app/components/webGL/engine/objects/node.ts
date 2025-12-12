@@ -61,6 +61,12 @@ export class Node {
     draw(gl: WebGL2RenderingContext, program: WebGLProgram, viewProjMatrix: mat4, cameraPos: [number, number, number]) {
         this.updateMatrix();
         
+        // Set instancing flag to false for individual node rendering
+        const useInstancingLoc = this.scene.engine.getUniformLocation(program, "uUseInstancing");
+        if (useInstancingLoc !== null) {
+            gl.uniform1i(useInstancingLoc, 0);
+        }
+        
         // mvp and model
         const modelLoc = this.scene.engine.getUniformLocation(program, "uModel");
         gl.uniformMatrix4fv(modelLoc, false, this.modelMatrix);

@@ -11,14 +11,16 @@ import { randomVec3 } from "./math/random";
 import { Shader } from "./engine/core/shader";
 import { PointLight } from "./engine/objects/pointLight";
 
-function getRandomPositionOnPlane(rangeX: number, rangeZ: number, yHeight: number) {
-  const x = (Math.random() - 0.5) * rangeX;
-  const z = (Math.random() - 0.5) * rangeZ;
-  return vec3.fromValues(x, yHeight, z);
+function getRandomPosition3D(range: number) {
+  const x = (Math.random() - 0.5) * range;
+  const y = (Math.random() - 0.5) * range;
+  const z = (Math.random() - 0.5) * range;
+  return vec3.fromValues(x, y, z);
 }
 
 export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fpsRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quantize.frag"
+        "/shaders/quad.frag"
       );
 
       // Load all available meshes from public/models so we can pick randomly
@@ -80,25 +82,13 @@ export default function WebGLCanvas() {
       const plainMaterial = new Material(engine);
       plainMaterial.roughnessMultiplier = 0.3;  // Lower roughness = shinier (more specular)
       plainMaterial.metallic = 0.8;  // Higher metallic = more reflective
-
-      // Ground plane material - make it visible for debugging
-      const groundMaterial = new Material(engine);
-      groundMaterial.setDiffuse("/materials/rocks/rocks_Color.jpg");
-      groundMaterial.setNormal("/materials/rocks/rocks_NormalGL.jpg");
-      groundMaterial.setSpecular("/materials/rocks/rocks_Roughness.jpg");
-      groundMaterial.metallic = 0.0;
-      groundMaterial.roughnessMultiplier = 1.5;
-      // Make material color brighter to help see it (0-255 range)
-      groundMaterial.color = [255, 255, 255]; // White
-      // Add slight emission to make it more visible
-      groundMaterial.emission = [20, 20, 20]; // Slight glow
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
       scene.camera.setPosition(vec3.fromValues(0, 30, 50));
       
-      // Add a point light at the center of the screen
-      const centerLight = new PointLight(
+      // Add a warm point light (red/orange/yellow)
+      const warmLight = new PointLight(
         vec3.fromValues(0, 5, 0),  // Position: center, slightly above ground
         vec3.fromValues(1.0, 0.0, 0.0),  // Red light
         10.0,  // Intensity - much higher for visibility
@@ -106,75 +96,79 @@ export default function WebGLCanvas() {
         0.09,  // Linear attenuation
         0.032  // Quadratic attenuation
       );
-      scene.addPointLight(centerLight);
+      scene.addPointLight(warmLight);
+      
+      // Add a cool point light (blue/cyan) that orbits opposite to the warm light
+      const coolLight = new PointLight(
+        vec3.fromValues(0, 5, 0),  // Initial position: center, slightly above ground
+        vec3.fromValues(0.0, 0.5, 1.0),  // Cool blue/cyan light
+        10.0,  // Intensity - same as warm light
+        1.0,  // Constant attenuation
+        0.09,  // Linear attenuation
+        0.032  // Quadratic attenuation
+      );
+      scene.addPointLight(coolLight);
       
       // Assign quad program to engine framebuffer for final output
       engine.framebuffer.program = quadProgram;
       
       const nodes: Node[] = [];
 
-      // Create a large ground plane using a flattened cube
-      // Find the cube mesh by index
-      const cubeMeshIndex = modelPaths.findIndex(path => path === "/models/cube.obj");
-      if (cubeMeshIndex !== -1) {
-        const cubeMesh = meshes[cubeMeshIndex];
-        const groundPlane = new Node(
-          scene,
-          vec3.fromValues(0, -3, 0), // Position at origin
-          vec3.fromValues(20, 0.25, 20), // Scale to create a large flat plane (100x100 units, very thin)
-          quat.create(),
-          cubeMesh,
-          groundMaterial
-        );
-        // Mark this as the ground plane so we can render it with culling disabled
-        (groundPlane as any).isGroundPlane = true;
-        nodes.push(groundPlane);
-        scene.add(groundPlane);
+      // Create objects in 3D space - using many instances of the same shape to test instancing
+      const numObjects = 200; // Large number to really test instancing performance
+      const spawnRange = 60; // Range for random 3D positioning
+      
+      // Use sphere mesh for all instances (same shape = perfect for instancing test)
+      const sphereMeshIndex = modelPaths.findIndex(path => path === "/models/sphere.obj");
+      if (sphereMeshIndex === -1) {
+        console.warn("Could not find sphere.obj mesh for instancing test");
       } else {
-        console.warn("Could not find cube.obj mesh for ground plane");
-      }
-
-      // Create objects on the plane
-      const numObjects = 100;
-      const planeSize = 40; // Objects will be placed within 40 units from center
-      
-      // Filter out cube mesh for objects (we only want 3D objects, not the ground plane)
-      const objectMeshes = meshes.filter((_, index) => modelPaths[index] !== "/models/cube.obj");
-      
-      for (let i = 0; i < numObjects; i++) {
-        const mesh = objectMeshes[Math.floor(Math.random() * objectMeshes.length)];
-
-        // Random scale between 0.3 and 1.0
-        const scale = 0.3 + Math.random() * 0.7;
-        const scaleVec = vec3.fromValues(scale, scale, scale);
+        const sphereMesh = meshes[sphereMeshIndex];
         
-        // Position on plane - use a fixed y offset to ensure objects sit on the plane
-        // Most objects are roughly centered, so scale * 0.5 should work, but add a bit more for safety
-        const yHeight = scale * 0.6;
-        const position = getRandomPositionOnPlane(planeSize, planeSize, yHeight);
+        // Create many instances of the same sphere with different materials
+        // This will create 3 instance groups (one per material) with many instances each
+        for (let i = 0; i < numObjects; i++) {
+          // Random scale between 0.2 and 0.8
+          const scale = 0.2 + Math.random() * 0.6;
+          const scaleVec = vec3.fromValues(scale, scale, scale);
+          
+          // Random 3D position (no plane constraint)
+          const position = getRandomPosition3D(spawnRange);
 
-        const node = new Node(
-          scene,
-          position,
-          scaleVec,
-          quat.create(),
-          mesh,
-          i % 3 === 0 ? rockMaterial : i % 3 === 1 ? plainMaterial : barkMaterial
-        );
+          // Distribute materials evenly to create 3 instance groups
+          const material = i % 3 === 0 ? rockMaterial : i % 3 === 1 ? plainMaterial : barkMaterial;
 
-        // Random rotation but no angular velocity (objects stay in place)
-        quat.fromEuler(node.rotation, 
-          Math.random() * 360, 
-          Math.random() * 360, 
-          Math.random() * 360
-        );
+          const node = new Node(
+            scene,
+            position,
+            scaleVec,
+            quat.create(),
+            sphereMesh,
+            material
+          );
 
-        nodes.push(node);
-        scene.add(node);
+          // Random rotation but no angular velocity (objects stay in place)
+          quat.fromEuler(node.rotation, 
+            Math.random() * 360, 
+            Math.random() * 360, 
+            Math.random() * 360
+          );
+
+          nodes.push(node);
+          scene.add(node);
+        }
+        
+        console.log(`Created ${numObjects} sphere instances for instancing test`);
+        console.log(`Expected ~3 instance groups (one per material)`);
       }
 
       let lastTime = performance.now();
       const startTime = performance.now();
+      
+      // Framerate tracking
+      let frameCount = 0;
+      let fpsLastTime = performance.now();
+      const fpsUpdateInterval = 500; // Update FPS display every 500ms
 
       function render(time: number) {
         // Always resize canvas first - this ensures dimensions are correct
@@ -190,36 +184,73 @@ export default function WebGLCanvas() {
         const dt = Math.min((time - lastTime) / 1000, 0.1);
         lastTime = time;
         
-        // Animate point light
+        // Calculate and update framerate
+        frameCount++;
+        const fpsElapsed = time - fpsLastTime;
+        if (fpsElapsed >= fpsUpdateInterval && fpsRef.current) {
+          const fps = Math.round((frameCount * 1000) / fpsElapsed);
+          fpsRef.current.textContent = `FPS: ${fps}`;
+          frameCount = 0;
+          fpsLastTime = time;
+        }
+        
+        // Animate point lights
         const elapsed = (time - startTime) / 1000; // Time in seconds
         
-        // Animate position - circular motion in XZ plane, slight vertical movement
+        // Animate warm light position - circular motion in XZ plane, slight vertical movement
         const radius = 15.0;
         const height = 8.0;
         const speed = 0.5; // Rotation speed
-        centerLight.setPosition(vec3.fromValues(
-          Math.cos(elapsed * speed) * radius,
-          height + Math.sin(elapsed * speed * 0.7) * 3.0, // Vertical bobbing
-          Math.sin(elapsed * speed) * radius
+        const angle = elapsed * speed;
+        warmLight.setPosition(vec3.fromValues(
+          Math.cos(angle) * radius,
+          height + Math.sin(angle * 0.7) * 3.0, // Vertical bobbing
+          Math.sin(angle) * radius
         ));
         
-        // Animate color - warm colors (orange/red/yellow)
-        // Cycle through warm color palette
-        const colorPhase = elapsed * 0.8; // Color change speed
-        const r = 1.0; // Always full red component for warm colors
-        const g = 0.4 + Math.sin(colorPhase) * 0.3; // Vary green: 0.4-0.7
-        const b = Math.max(0.0, Math.sin(colorPhase * 0.7) * 0.2); // Vary blue: 0.0-0.2
-        centerLight.setColor(vec3.fromValues(r, g, b));
+        // Animate cool light position - same direction but offset by π (180 degrees)
+        const coolAngle = angle + Math.PI;
+        coolLight.setPosition(vec3.fromValues(
+          Math.cos(coolAngle) * radius,
+          height + Math.sin(coolAngle * 0.7) * 3.0, // Vertical bobbing
+          Math.sin(coolAngle) * radius
+        ));
         
-        // Animate intensity - flicker like a fire
-        const intensityBase = 16.0;
-        const intensityVariation = 8.0;
+        // Animate warm light color - warm colors (orange/red/yellow)
+        // Cycle through warm color palette
+        const warmColorPhase = elapsed * 0.8; // Color change speed
+        const warmR = 1.0; // Always full red component for warm colors
+        const warmG = 0.4 + Math.sin(warmColorPhase) * 0.3; // Vary green: 0.4-0.7
+        const warmB = Math.max(0.0, Math.sin(warmColorPhase * 0.7) * 0.2); // Vary blue: 0.0-0.2
+        warmLight.setColor(vec3.fromValues(warmR, warmG, warmB));
+        
+        // Animate cool light color - cool colors (blue/cyan)
+        // Cycle through cool color palette
+        const coolColorPhase = elapsed * 0.8; // Color change speed
+        const coolR = Math.max(0.0, Math.sin(coolColorPhase * 0.7) * 0.2); // Vary red: 0.0-0.2
+        const coolG = 0.4 + Math.sin(coolColorPhase) * 0.3; // Vary green: 0.4-0.7
+        const coolB = 1.0; // Always full blue component for cool colors
+        coolLight.setColor(vec3.fromValues(coolR, coolG, coolB));
+        
+        // Animate warm light intensity - flicker like a fire
+        const warmIntensityBase = 16.0;
+        const warmIntensityVariation = 8.0;
         // Use multiple sine waves for more natural flicker
-        const flicker1 = Math.sin(elapsed * 8.0) * 0.5;
-        const flicker2 = Math.sin(elapsed * 13.0) * 0.3;
-        const flicker3 = Math.sin(elapsed * 5.0) * 0.2;
-        const intensity = intensityBase + (flicker1 + flicker2 + flicker3) * intensityVariation;
-        centerLight.setIntensity(Math.max(5.0, intensity)); // Minimum intensity of 5.0
+        const warmFlicker1 = Math.sin(elapsed * 8.0) * 0.5;
+        const warmFlicker2 = Math.sin(elapsed * 13.0) * 0.3;
+        const warmFlicker3 = Math.sin(elapsed * 5.0) * 0.2;
+        const warmIntensity = warmIntensityBase + (warmFlicker1 + warmFlicker2 + warmFlicker3) * warmIntensityVariation;
+        warmLight.setIntensity(Math.max(5.0, warmIntensity)); // Minimum intensity of 5.0
+        
+        // Animate cool light intensity - similar flicker but slightly out of phase
+        const coolIntensityBase = 16.0;
+        const coolIntensityVariation = 8.0;
+        // Use multiple sine waves with different phases for variation
+        const coolFlicker1 = Math.sin(elapsed * 8.0 + Math.PI) * 0.5; // Out of phase
+        const coolFlicker2 = Math.sin(elapsed * 13.0 + Math.PI * 0.5) * 0.3;
+        const coolFlicker3 = Math.sin(elapsed * 5.0 + Math.PI) * 0.2;
+        const coolIntensity = coolIntensityBase + (coolFlicker1 + coolFlicker2 + coolFlicker3) * coolIntensityVariation;
+        coolLight.setIntensity(Math.max(5.0, coolIntensity)); // Minimum intensity of 5.0
 
         engine.update(); // Clears engine.framebuffer
         scene.update(dt);
@@ -227,15 +258,15 @@ export default function WebGLCanvas() {
         engine.use(); // Set screen as render location
         engine.framebuffer.render((gl, program) => {
           // Set quantize shader uniforms
-          const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
-          if (quantizationLevelLoc !== null) {
-            gl.uniform1f(quantizationLevelLoc, 8.0);
-          }
+          // const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
+          // if (quantizationLevelLoc !== null) {
+          //   gl.uniform1f(quantizationLevelLoc, 8.0);
+          // }
           
-          const resolutionLoc = gl.getUniformLocation(program, "uResolution");
-          if (resolutionLoc !== null) {
-            gl.uniform2f(resolutionLoc, engine.width, engine.height);
-          }
+          // const resolutionLoc = gl.getUniformLocation(program, "uResolution");
+          // if (resolutionLoc !== null) {
+          //   gl.uniform2f(resolutionLoc, engine.width, engine.height);
+          // }
         });
 
         requestAnimationFrame(render);
@@ -266,6 +297,26 @@ export default function WebGLCanvas() {
           display: "block",
         }}
       />
+      {/* FPS Debug Display */}
+      <div
+        ref={fpsRef}
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          color: "white",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          padding: "8px 12px",
+          borderRadius: "4px",
+          fontFamily: "monospace",
+          fontSize: "14px",
+          fontWeight: "bold",
+          zIndex: 10,
+          pointerEvents: "none",
+        }}
+      >
+        FPS: --
+      </div>
       {/* Black overlay that fades out when loaded */}
       <div
         className={`absolute inset-0 bg-black transition-opacity duration-1000 ${
