@@ -10,6 +10,7 @@ varying mat3 vTBN;
 
 // Uniforms for lighting
 uniform vec3 uLightDir;  // Directional light direction
+uniform vec3 uLightColor;  // Directional light color (moonlight)
 uniform vec3 uViewPos;
 
 // Point light uniforms
@@ -170,13 +171,13 @@ void main() {
     // Accumulated lighting from all sources
     vec3 Lo = vec3(0.0);
     
-    // --- Directional Light ---
+    // --- Directional Light (Moonlight) ---
     vec3 L_dir = normalize(uLightDir);
     float NdotL_dir = max(dot(N, L_dir), 0.0);
     
     if (NdotL_dir > 0.0) {
-        // White directional light (no color tint)
-        vec3 lightColor = vec3(1.0);
+        // Blue-moonlight color (cool blue-white)
+        vec3 lightColor = uLightColor;
         Lo += calculateLightContribution(N, V, L_dir, albedo, rough, metallic, F0, NdotV, NdotL_dir, lightColor);
     }
     

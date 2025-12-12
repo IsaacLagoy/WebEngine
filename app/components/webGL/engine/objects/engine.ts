@@ -250,9 +250,4 @@ export class Engine {
             this.scene?.camera.updateAspectRatio();
         }
     }
-
-    render() {
-        // Don't render engine.framebuffer - it's just cleared and empty
-        // The actual rendering happens via secondaryFramebuffer.render() in the main loop
-    }
 }

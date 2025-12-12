@@ -6,6 +6,9 @@ import { PointLight } from "./pointLight";
 import { InstanceGroup } from "./instanceGroup";
 import { Mesh } from "./mesh";
 import { Material } from "./material";
+import { Billboard } from "./billboard";
+import { FireBillboard } from "./fireBillboard";
+import { vec3 } from "gl-matrix";
 /**
  * Scene class - contains all objects in the 3D world
  * A scene is a collection of nodes (3D objects) that get rendered together
@@ -16,6 +19,8 @@ export class Scene {
     nodes: Node[] = [];  // All 3D objects in the scene
     instanceGroups: Map<string, InstanceGroup> = new Map();  // Instance groups keyed by "meshId_materialId"
     pointLights: PointLight[] = [];  // Point lights in the scene
+    billboards: Billboard[] = [];  // Billboards
+    fireBillboards: FireBillboard[] = [];  // Animated fire billboards
     shader: Shader | null = null;
     camera: Camera;
 
@@ -89,6 +94,20 @@ export class Scene {
     }
 
     /**
+     * Add a billboard to the scene
+     */
+    addBillboard(billboard: Billboard) {
+        this.billboards.push(billboard);
+    }
+
+    /**
+     * Add a fire billboard to the scene
+     */
+    addFireBillboard(fireBillboard: FireBillboard) {
+        this.fireBillboards.push(fireBillboard);
+    }
+
+    /**
      * Remove a point light from the scene
      */
     removePointLight(light: PointLight) {
@@ -123,10 +142,20 @@ export class Scene {
             gl.uniform3f(ambientLoc, 1.0, 1.0, 1.0); // White ambient
         }
         
-        // Directional light (scene-level)
+        // Directional light (scene-level) - blue moonlight
+        // Light direction should point FROM surface TOWARD the light source
+        // Since moonlight comes from above, the direction vector should point up (positive Y)
         const lightDirLoc = this.engine.getUniformLocation(program, "uLightDir");
         if (lightDirLoc !== null) {
-            gl.uniform3fv(lightDirLoc, [0, 1, 1]);
+            // Direction pointing up and slightly backward (toward moonlight source above)
+            gl.uniform3fv(lightDirLoc, [-0.2, 1, -0.3]);
+        }
+        
+        // Set directional light color to blue-moonlight
+        const lightColorLoc = this.engine.getUniformLocation(program, "uLightColor");
+        if (lightColorLoc !== null) {
+            // Blue-moonlight color (cool blue-white)
+            gl.uniform3f(lightColorLoc, 0.4, 0.5, 0.8);
         }
         
         // Point lights (scene-level)
@@ -203,11 +232,26 @@ export class Scene {
         for (const group of this.instanceGroups.values()) {
             group.drawInstanced(gl, program, vpMatrix, camPos);
         }
+
+        // Draw billboards (solid color quads)
+        for (const billboard of this.billboards) {
+            billboard.render(vpMatrix, camPos);
+        }
+
+        // Draw fire billboards (animated sprites)
+        for (const fireBillboard of this.fireBillboards) {
+            fireBillboard.render(vpMatrix, camPos);
+        }
     }
 
     update(dt: number) {
         for (const node of this.nodes) {
             node.update(dt);
+        }
+
+        // Update fire billboard animations
+        for (const fireBillboard of this.fireBillboards) {
+            fireBillboard.update(dt);
         }
 
         if (this.shader) {

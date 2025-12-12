@@ -10,6 +10,8 @@ import { Material } from "./engine/objects/material";
 import { randomVec3 } from "./math/random";
 import { Shader } from "./engine/core/shader";
 import { PointLight } from "./engine/objects/pointLight";
+import { Billboard } from "./engine/objects/billboard";
+import { FireBillboard } from "./engine/objects/fireBillboard";
 
 function getRandomPosition3D(range: number) {
   const x = (Math.random() - 0.5) * range;
@@ -85,55 +87,91 @@ export default function WebGLCanvas() {
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
-      scene.camera.setPosition(vec3.fromValues(0, 30, 50));
+      scene.camera.setPosition(vec3.fromValues(0, 15, 25));
+      scene.camera.target = vec3.fromValues(0, 0, 0); // Look at origin
+      scene.camera.updateMatrices();
       
-      // Add a warm point light (red/orange/yellow)
-      const warmLight = new PointLight(
-        vec3.fromValues(0, 5, 0),  // Position: center, slightly above ground
-        vec3.fromValues(1.0, 0.0, 0.0),  // Red light
-        10.0,  // Intensity - much higher for visibility
+      // Add blue-moonlight directional light (set in scene uniforms)
+      // This is handled by the directional light in the shader (uLightDir)
+      
+      // Add orange-yellow fire light at center
+      const fireLight = new PointLight(
+        vec3.fromValues(0, 0.5, 0),  // Position: center, at fire height (matches fire position)
+        vec3.fromValues(1.0, 0.6, 0.2),  // Orange-yellow light (warm fire color)
+        15.0,  // Intensity - bright fire light
         1.0,  // Constant attenuation
         0.09,  // Linear attenuation
         0.032  // Quadratic attenuation
       );
-      scene.addPointLight(warmLight);
-      
-      // Add a cool point light (blue/cyan) that orbits opposite to the warm light
-      const coolLight = new PointLight(
-        vec3.fromValues(0, 5, 0),  // Initial position: center, slightly above ground
-        vec3.fromValues(0.0, 0.5, 1.0),  // Cool blue/cyan light
-        10.0,  // Intensity - same as warm light
-        1.0,  // Constant attenuation
-        0.09,  // Linear attenuation
-        0.032  // Quadratic attenuation
-      );
-      scene.addPointLight(coolLight);
+      scene.addPointLight(fireLight);
       
       // Assign quad program to engine framebuffer for final output
       engine.framebuffer.program = quadProgram;
       
       const nodes: Node[] = [];
 
-      // Create objects in 3D space - using many instances of the same shape to test instancing
-      const numObjects = 200; // Large number to really test instancing performance
-      const spawnRange = 60; // Range for random 3D positioning
+      // Create ground plane using a stretched cube
+      const cubeMeshIndex = modelPaths.findIndex(path => path === "/models/cube.obj");
+      if (cubeMeshIndex !== -1) {
+        const cubeMesh = meshes[cubeMeshIndex];
+        const groundPlane = new Node(
+          scene,
+          vec3.fromValues(0, -1, 0), // Position slightly below origin
+          vec3.fromValues(30, 0.5, 30), // Scale: large flat plane, thin
+          quat.create(),
+          cubeMesh,
+          rockMaterial
+        );
+        // Mark as ground plane for special rendering if needed
+        (groundPlane as any).isGroundPlane = true;
+        nodes.push(groundPlane);
+        scene.add(groundPlane);
+      }
+
+      // Create fire billboard at center
+      const billboardShader = await Shader.create(
+        gl,
+        "/shaders/billboard.vert",
+        "/shaders/billboard.frag"
+      );
       
-      // Use sphere mesh for all instances (same shape = perfect for instancing test)
+      // Load fire sprite frames
+      const fireTextures = await FireBillboard.loadFrames(engine);
+      console.log(`Loaded ${fireTextures.length} fire frames`);
+      
+      // Create single fire at center, partially clipped into ground
+      // const centerFire = new FireBillboard(
+      //   engine,
+      //   vec3.fromValues(0, 0.5, 0),  // Position: center, partially in ground (ground top is at y=-0.75)
+      //   [8, 12],  // Size: 8 wide, 12 tall
+      //   fireTextures
+      // );
+      // await centerFire.init(billboardShader);
+      // scene.addFireBillboard(centerFire);
+      
+      // Create a few objects on the ground
+      const numObjects = 10; // Just a few objects
+      const spawnRange = 20; // Objects within 20 units of center
+      
+      // Use sphere mesh for objects on the ground
       const sphereMeshIndex = modelPaths.findIndex(path => path === "/models/sphere.obj");
       if (sphereMeshIndex === -1) {
-        console.warn("Could not find sphere.obj mesh for instancing test");
+        console.warn("Could not find sphere.obj mesh");
       } else {
         const sphereMesh = meshes[sphereMeshIndex];
         
-        // Create many instances of the same sphere with different materials
-        // This will create 3 instance groups (one per material) with many instances each
+        // Create objects positioned on the ground
         for (let i = 0; i < numObjects; i++) {
-          // Random scale between 0.2 and 0.8
-          const scale = 0.2 + Math.random() * 0.6;
+          // Random scale between 0.5 and 1.5
+          const scale = 0.5 + Math.random() * 1.0;
           const scaleVec = vec3.fromValues(scale, scale, scale);
           
-          // Random 3D position (no plane constraint)
-          const position = getRandomPosition3D(spawnRange);
+          // Random position on ground (X and Z random, Y = scale/2 to sit on ground)
+          // Ground plane is at y=-1 with height 0.5, so top surface is at y=-0.75
+          const x = (Math.random() - 0.5) * spawnRange;
+          const z = (Math.random() - 0.5) * spawnRange;
+          const y = -0.75 + scale * 0.5; // Sit on top of ground plane
+          const position = vec3.fromValues(x, y, z);
 
           // Distribute materials evenly to create 3 instance groups
           const material = i % 3 === 0 ? rockMaterial : i % 3 === 1 ? plainMaterial : barkMaterial;
@@ -194,63 +232,16 @@ export default function WebGLCanvas() {
           fpsLastTime = time;
         }
         
-        // Animate point lights
+        // Animate fire light intensity - flicker like a real fire
         const elapsed = (time - startTime) / 1000; // Time in seconds
-        
-        // Animate warm light position - circular motion in XZ plane, slight vertical movement
-        const radius = 15.0;
-        const height = 8.0;
-        const speed = 0.5; // Rotation speed
-        const angle = elapsed * speed;
-        warmLight.setPosition(vec3.fromValues(
-          Math.cos(angle) * radius,
-          height + Math.sin(angle * 0.7) * 3.0, // Vertical bobbing
-          Math.sin(angle) * radius
-        ));
-        
-        // Animate cool light position - same direction but offset by π (180 degrees)
-        const coolAngle = angle + Math.PI;
-        coolLight.setPosition(vec3.fromValues(
-          Math.cos(coolAngle) * radius,
-          height + Math.sin(coolAngle * 0.7) * 3.0, // Vertical bobbing
-          Math.sin(coolAngle) * radius
-        ));
-        
-        // Animate warm light color - warm colors (orange/red/yellow)
-        // Cycle through warm color palette
-        const warmColorPhase = elapsed * 0.8; // Color change speed
-        const warmR = 1.0; // Always full red component for warm colors
-        const warmG = 0.4 + Math.sin(warmColorPhase) * 0.3; // Vary green: 0.4-0.7
-        const warmB = Math.max(0.0, Math.sin(warmColorPhase * 0.7) * 0.2); // Vary blue: 0.0-0.2
-        warmLight.setColor(vec3.fromValues(warmR, warmG, warmB));
-        
-        // Animate cool light color - cool colors (blue/cyan)
-        // Cycle through cool color palette
-        const coolColorPhase = elapsed * 0.8; // Color change speed
-        const coolR = Math.max(0.0, Math.sin(coolColorPhase * 0.7) * 0.2); // Vary red: 0.0-0.2
-        const coolG = 0.4 + Math.sin(coolColorPhase) * 0.3; // Vary green: 0.4-0.7
-        const coolB = 1.0; // Always full blue component for cool colors
-        coolLight.setColor(vec3.fromValues(coolR, coolG, coolB));
-        
-        // Animate warm light intensity - flicker like a fire
-        const warmIntensityBase = 16.0;
-        const warmIntensityVariation = 8.0;
-        // Use multiple sine waves for more natural flicker
-        const warmFlicker1 = Math.sin(elapsed * 8.0) * 0.5;
-        const warmFlicker2 = Math.sin(elapsed * 13.0) * 0.3;
-        const warmFlicker3 = Math.sin(elapsed * 5.0) * 0.2;
-        const warmIntensity = warmIntensityBase + (warmFlicker1 + warmFlicker2 + warmFlicker3) * warmIntensityVariation;
-        warmLight.setIntensity(Math.max(5.0, warmIntensity)); // Minimum intensity of 5.0
-        
-        // Animate cool light intensity - similar flicker but slightly out of phase
-        const coolIntensityBase = 16.0;
-        const coolIntensityVariation = 8.0;
-        // Use multiple sine waves with different phases for variation
-        const coolFlicker1 = Math.sin(elapsed * 8.0 + Math.PI) * 0.5; // Out of phase
-        const coolFlicker2 = Math.sin(elapsed * 13.0 + Math.PI * 0.5) * 0.3;
-        const coolFlicker3 = Math.sin(elapsed * 5.0 + Math.PI) * 0.2;
-        const coolIntensity = coolIntensityBase + (coolFlicker1 + coolFlicker2 + coolFlicker3) * coolIntensityVariation;
-        coolLight.setIntensity(Math.max(5.0, coolIntensity)); // Minimum intensity of 5.0
+        const fireIntensityBase = 12.0;
+        const fireIntensityVariation = 4.0;
+        // Use multiple sine waves for natural fire flicker
+        const fireFlicker1 = Math.sin(elapsed * 8.0) * 0.5;
+        const fireFlicker2 = Math.sin(elapsed * 13.0) * 0.3;
+        const fireFlicker3 = Math.sin(elapsed * 5.0) * 0.2;
+        const fireIntensity = fireIntensityBase + (fireFlicker1 + fireFlicker2 + fireFlicker3) * fireIntensityVariation;
+        fireLight.setIntensity(Math.max(8.0, fireIntensity)); // Minimum intensity of 8.0
 
         engine.update(); // Clears engine.framebuffer
         scene.update(dt);
