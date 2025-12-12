@@ -67,12 +67,10 @@ void main() {
     }
     
     float gray = dot(cellColor.rgb, vec3(0.299, 0.587, 0.114));
-    if (gray > clearcoatThreshold) {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, cellColor.a);
-        return;
-    }
     
-    // Process and quantize
+    // Process and quantize - normalize bright areas instead of cutting them off
+    // Clamp gray to [0, clearcoatThreshold] before normalization to prevent overflow
+    gray = clamp(gray, 0.0, clearcoatThreshold);
     gray = pow(gray / clearcoatThreshold, 0.6);
     
     vec2 ditherPos = mod(cellIndex, float(n));

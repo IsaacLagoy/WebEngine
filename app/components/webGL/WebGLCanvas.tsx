@@ -43,7 +43,7 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quad.frag"
+        "/shaders/quantize.frag"
       );
 
       // Load all available meshes from public/models so we can pick randomly
@@ -227,15 +227,15 @@ export default function WebGLCanvas() {
         engine.use(); // Set screen as render location
         engine.framebuffer.render((gl, program) => {
           // Set quantize shader uniforms
-          // const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
-          // if (quantizationLevelLoc !== null) {
-          //   gl.uniform1f(quantizationLevelLoc, 8.0);
-          // }
+          const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
+          if (quantizationLevelLoc !== null) {
+            gl.uniform1f(quantizationLevelLoc, 8.0);
+          }
           
-          // const resolutionLoc = gl.getUniformLocation(program, "uResolution");
-          // if (resolutionLoc !== null) {
-          //   gl.uniform2f(resolutionLoc, engine.width, engine.height);
-          // }
+          const resolutionLoc = gl.getUniformLocation(program, "uResolution");
+          if (resolutionLoc !== null) {
+            gl.uniform2f(resolutionLoc, engine.width, engine.height);
+          }
         });
 
         requestAnimationFrame(render);
