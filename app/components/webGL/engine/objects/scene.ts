@@ -2,6 +2,7 @@ import { Node } from "./node";
 import { Camera } from "../core/camera";
 import { Engine } from "./engine";
 import { Shader } from "../core/shader";
+import { PointLight } from "./pointLight";
 /**
  * Scene class - contains all objects in the 3D world
  * A scene is a collection of nodes (3D objects) that get rendered together
@@ -9,6 +10,7 @@ import { Shader } from "../core/shader";
 export class Scene {
     engine: Engine;
     nodes: Node[] = [];  // All 3D objects in the scene
+    pointLights: PointLight[] = [];  // Point lights in the scene
     shader: Shader | null = null;
     camera: Camera;
 
@@ -33,8 +35,109 @@ export class Scene {
         this.nodes.push(node);
     }
 
+    /**
+     * Add a point light to the scene
+     */
+    addPointLight(light: PointLight) {
+        this.pointLights.push(light);
+    }
+
+    /**
+     * Remove a point light from the scene
+     */
+    removePointLight(light: PointLight) {
+        const index = this.pointLights.indexOf(light);
+        if (index !== -1) {
+            this.pointLights.splice(index, 1);
+        }
+    }
+
+    /**
+     * Get all point lights in the scene
+     */
+    getPointLights(): PointLight[] {
+        return this.pointLights;
+    }
+
     gl(): WebGL2RenderingContext {
         return this.engine.gl;
+    }
+
+    /**
+     * Sets scene-level uniforms (lights, camera) that are shared across all nodes
+     * This should be called once per frame before drawing nodes
+     * @param program - Shader program to use for rendering
+     */
+    setSceneUniforms(program: WebGLProgram) {
+        const gl = this.gl();
+        
+        // Ambient color (scene-level) - prevents pure black faces
+        const ambientLoc = this.engine.getUniformLocation(program, "uAmbientColor");
+        if (ambientLoc !== null) {
+            gl.uniform3f(ambientLoc, 1.0, 1.0, 1.0); // White ambient
+        }
+        
+        // Directional light (scene-level)
+        const lightDirLoc = this.engine.getUniformLocation(program, "uLightDir");
+        if (lightDirLoc !== null) {
+            gl.uniform3fv(lightDirLoc, [0, 1, 1]);
+        }
+        
+        // Point lights (scene-level)
+        const pointLights = this.getPointLights();
+        const numLights = Math.min(pointLights.length, 16); // MAX_POINT_LIGHTS is 16
+        
+        // Set number of point lights
+        const numLightsLoc = this.engine.getUniformLocation(program, "uNumPointLights");
+        if (numLightsLoc !== null) {
+            gl.uniform1i(numLightsLoc, numLights);
+        }
+        
+        // Set point light uniforms (WebGL requires setting each array element individually)
+        for (let i = 0; i < 16; i++) { // Always set all 16 to ensure arrays are properly initialized
+            if (i < numLights) {
+                const light = pointLights[i];
+                
+                // Position
+                const posLoc = this.engine.getUniformLocation(program, `uPointLightPositions[${i}]`);
+                if (posLoc !== null) {
+                    gl.uniform3fv(posLoc, light.position);
+                }
+                
+                // Color (multiplied by intensity)
+                const colorLoc = this.engine.getUniformLocation(program, `uPointLightColors[${i}]`);
+                if (colorLoc !== null) {
+                    gl.uniform3f(
+                        colorLoc,
+                        light.color[0] * light.intensity,
+                        light.color[1] * light.intensity,
+                        light.color[2] * light.intensity
+                    );
+                }
+                
+                // Attenuation (constant, linear, quadratic)
+                const attLoc = this.engine.getUniformLocation(program, `uPointLightAttenuation[${i}]`);
+                if (attLoc !== null) {
+                    gl.uniform3f(attLoc, light.constant, light.linear, light.quadratic);
+                }
+            } else {
+                // Set unused lights to zero/neutral values
+                const posLoc = this.engine.getUniformLocation(program, `uPointLightPositions[${i}]`);
+                if (posLoc !== null) {
+                    gl.uniform3f(posLoc, 0, 0, 0);
+                }
+                
+                const colorLoc = this.engine.getUniformLocation(program, `uPointLightColors[${i}]`);
+                if (colorLoc !== null) {
+                    gl.uniform3f(colorLoc, 0, 0, 0);
+                }
+                
+                const attLoc = this.engine.getUniformLocation(program, `uPointLightAttenuation[${i}]`);
+                if (attLoc !== null) {
+                    gl.uniform3f(attLoc, 1, 0, 0);
+                }
+            }
+        }
     }
 
     /**
@@ -42,13 +145,26 @@ export class Scene {
      * @param program - Shader program to use for rendering
      */
     draw(program: WebGLProgram) {
+        // Set scene-level uniforms once per frame (lights, etc.)
+        this.setSceneUniforms(program);
+        
         // Get view-projection matrix (combines camera view + perspective projection)
         const vpMatrix = this.camera.getViewProjectionMatrix();
         const camPos = this.camera.position as [number, number, number];
+        const gl = this.gl();
 
-        // Draw each object in the scene
+        // Draw ground plane first with culling disabled (if it exists)
+        const groundPlane = this.nodes.find((n: any) => n.isGroundPlane);
+        if (groundPlane) {
+            gl.disable(gl.CULL_FACE);
+            groundPlane.draw(gl, program, vpMatrix, camPos);
+            gl.enable(gl.CULL_FACE);
+        }
+
+        // Draw each object in the scene (excluding ground plane if we already drew it)
         for (const node of this.nodes) {
-            node.draw(this.gl(), program, vpMatrix, camPos);
+            if ((node as any).isGroundPlane) continue; // Skip ground plane, already drawn
+            node.draw(gl, program, vpMatrix, camPos);
         }
     }
 

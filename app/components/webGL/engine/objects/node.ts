@@ -81,9 +81,8 @@ export class Node {
             gl.uniform3fv(camLoc, cameraPos);
         }
 
-        // directional light
-        const lightDirLoc = this.scene.engine.getUniformLocation(program, "uLightDir");
-        gl.uniform3fv(lightDirLoc, [0, 1, 1]);
+        // Note: Scene-level uniforms (lights, camera) are set once per frame in Scene.setSceneUniforms()
+        // Here we only set node-specific uniforms (model matrix, material, etc.)
 
         // bind material (if present) or use default white material
         if (this.material) {

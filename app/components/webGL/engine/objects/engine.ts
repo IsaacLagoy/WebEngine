@@ -196,7 +196,8 @@ export class Engine {
         }
 
         // Check if the canvas is not the same size
-        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+        const needsResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+        if (needsResize) {
             // Make the canvas the same size
             canvas.width = displayWidth;
             canvas.height = displayHeight;
@@ -206,9 +207,24 @@ export class Engine {
             // Update aspect ratio
             this.updateAspectRatio();
 
+            // Update camera aspect ratio if scene exists
+            if (this.scene && this.scene.camera) {
+                this.scene.camera.updateAspectRatio();
+            }
+
             // Resize framebuffer to match new canvas size
             if (this.framebuffer) {
                 this.framebuffer.resize();
+            }
+        } else {
+            // Even if dimensions haven't changed, ensure camera aspect ratio is correct
+            // This handles the case where engine was initialized with wrong dimensions
+            const currentAspectRatio = this.height > 0 ? this.width / this.height : 1.0;
+            if (Math.abs(this.aspectRatio - currentAspectRatio) > 0.001) {
+                this.aspectRatio = currentAspectRatio;
+                if (this.scene && this.scene.camera) {
+                    this.scene.camera.updateAspectRatio();
+                }
             }
         }
         

@@ -1,13 +1,22 @@
 precision mediump float;
 
+// Maximum number of point lights (WebGL has limits on uniform array sizes)
+#define MAX_POINT_LIGHTS 16
+
 // Varyings from vertex shader
 varying vec3 vPosition;
 varying vec2 vTexCoord;
 varying mat3 vTBN;
 
 // Uniforms for lighting
-uniform vec3 uLightDir;
+uniform vec3 uLightDir;  // Directional light direction
 uniform vec3 uViewPos;
+
+// Point light uniforms
+uniform int uNumPointLights;
+uniform vec3 uPointLightPositions[MAX_POINT_LIGHTS];
+uniform vec3 uPointLightColors[MAX_POINT_LIGHTS];
+uniform vec3 uPointLightAttenuation[MAX_POINT_LIGHTS];  // (constant, linear, quadratic)
 
 // Material inputs
 uniform vec3 uMaterialColor;      // material color (0-1, tints albedo)
@@ -64,6 +73,45 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+// Calculate PBR lighting contribution for a given light direction
+// Returns the radiance (Lo) contribution from this light
+vec3 calculateLightContribution(
+    vec3 N,           // Surface normal
+    vec3 V,           // View direction
+    vec3 L,           // Light direction (normalized)
+    vec3 albedo,      // Surface albedo
+    float roughness,  // Surface roughness
+    float metallic,   // Surface metallic value
+    vec3 F0,          // Fresnel F0
+    float NdotV,      // N dot V (pre-calculated)
+    float NdotL,      // N dot L (pre-calculated)
+    vec3 lightColor   // Light color/intensity
+) {
+    // Half vector
+    vec3 H = normalize(V + L);
+    
+    // Cook-Torrance BRDF components
+    float D = DistributionGGX(N, H, roughness);
+    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    float G = GeometrySmith(N, V, L, roughness);
+    
+    // Specular contribution
+    vec3 numerator = D * F * G;
+    float denominator = 4.0 * NdotV * NdotL;
+    vec3 specular = numerator / max(denominator, 0.001);
+    
+    // Energy conservation: kS is the specular contribution, kD is the diffuse
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= (1.0 - metallic);  // For metals, there's no diffuse reflection
+    
+    // Diffuse contribution (Lambertian)
+    vec3 diffuse = kD * albedo / 3.14159265359;
+    
+    // Return radiance contribution
+    return (diffuse + specular) * NdotL * lightColor;
+}
+
 void main() {
     // --- Albedo (PBR standard: texture * materialColor) ---
     vec3 albedoTex = texture2D(uDiffuseMap, vTexCoord).rgb;
@@ -110,43 +158,52 @@ void main() {
     rough = clamp(rough, 0.04, 1.0);
     metallic = clamp(metallic, 0.0, 1.0);
 
-    // --- Lighting vectors ---
-    vec3 L = normalize(uLightDir);
+    // --- View vector (same for all lights) ---
     vec3 V = normalize(uViewPos - vPosition);
-    vec3 H = normalize(V + L);
-    
-    float NdotL = max(dot(N, L), 0.0);
     float NdotV = max(dot(N, V), 0.0);
-
-    // --- Cook-Torrance BRDF ---
     
-    // Calculate reflectance at normal incidence (F0)
+    // Calculate reflectance at normal incidence (F0) - same for all lights
     // For dielectrics, F0 is around 0.04
     // For metals, F0 is the albedo color
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
     
-    // Cook-Torrance components
-    float D = DistributionGGX(N, H, rough);
-    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-    float G = GeometrySmith(N, V, L, rough);
+    // Accumulated lighting from all sources
+    vec3 Lo = vec3(0.0);
     
-    // Specular contribution
-    vec3 numerator = D * F * G;
-    float denominator = 4.0 * NdotV * NdotL;
-    vec3 specular = numerator / max(denominator, 0.001);
+    // --- Directional Light ---
+    vec3 L_dir = normalize(uLightDir);
+    float NdotL_dir = max(dot(N, L_dir), 0.0);
     
-    // Energy conservation: kS is the specular contribution, kD is the diffuse
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
+    if (NdotL_dir > 0.0) {
+        // White directional light (no color tint)
+        vec3 lightColor = vec3(1.0);
+        Lo += calculateLightContribution(N, V, L_dir, albedo, rough, metallic, F0, NdotV, NdotL_dir, lightColor);
+    }
     
-    // For metals, there's no diffuse reflection (all light is reflected)
-    kD *= (1.0 - metallic);
-    
-    // Diffuse contribution (Lambertian)
-    vec3 diffuse = kD * albedo / 3.14159265359;
-    
-    // Final lighting
-    vec3 Lo = (diffuse + specular) * NdotL;
+    // --- Point Lights ---
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+        if (i >= uNumPointLights) break;
+        
+        // Calculate light direction and distance
+        vec3 lightPos = uPointLightPositions[i];
+        vec3 L = lightPos - vPosition;
+        float distance = length(L);
+        L = normalize(L);
+        
+        float NdotL = max(dot(N, L), 0.0);
+        
+        if (NdotL > 0.0) {
+            // Calculate attenuation
+            vec3 att = uPointLightAttenuation[i];
+            float attenuation = 1.0 / (att.x + att.y * distance + att.z * distance * distance);
+            
+            // Get light color (already includes intensity)
+            vec3 lightColor = uPointLightColors[i] * attenuation;
+            
+            // Calculate and add point light contribution
+            Lo += calculateLightContribution(N, V, L, albedo, rough, metallic, F0, NdotV, NdotL, lightColor);
+        }
+    }
     
     // Ambient (simple approximation - could use IBL here)
     vec3 ambient = uAmbientColor * albedo * 0.03; // Very low ambient for PBR
