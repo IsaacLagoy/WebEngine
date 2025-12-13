@@ -25,6 +25,9 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string): WebGLTextu
         gl.generateMipmap(gl.TEXTURE_2D); // optional
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // Set wrap mode to REPEAT for tiling
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
     };
 
     return texture;
@@ -54,6 +57,7 @@ export class Material {
     roughnessMultiplier: number = 1.0;  // Multiplier for roughness (1.0 = normal, >1.0 = rougher, <1.0 = shinier)
     metallic: number = 0.0;  // Metallic (0.0 = dielectric, 1.0 = metal, uniform across surface)
     metallicMultiplier: number = 1.0;  // Multiplier for metallic (1.0 = normal, >1.0 = more metallic, <1.0 = less metallic)
+    textureTiling: number = 1.0;  // Texture tiling factor (1.0 = no tiling, >1.0 = repeat texture multiple times)
 
     // Shared white texture (fallback when no texture is provided)
     private static _defaultWhiteTexture: WebGLTexture | null = null;
@@ -123,8 +127,10 @@ export class Material {
         if (metallicLoc !== null) gl.uniform1f(metallicLoc, this.metallic);
         const metallicMultiplierLoc = this.engine.getUniformLocation(program, "uMetallicMultiplier");
         if (metallicMultiplierLoc !== null) gl.uniform1f(metallicMultiplierLoc, this.metallicMultiplier);
-        const colorTemperatureLoc = this.engine.getUniformLocation(program, "uColorTemperature");
-        if (colorTemperatureLoc !== null) gl.uniform1f(colorTemperatureLoc, this.colorTemperature);
+        
+        // Texture tiling
+        const textureTilingLoc = this.engine.getUniformLocation(program, "uTextureTiling");
+        if (textureTilingLoc !== null) gl.uniform1f(textureTilingLoc, this.textureTiling);
     }
 
     /**

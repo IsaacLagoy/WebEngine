@@ -37,6 +37,7 @@ uniform float uMetallicMultiplier; // multiplier for metallic (1.0 = normal, >1.
 uniform sampler2D uDiffuseMap;    // albedo texture (white if not provided)
 uniform sampler2D uNormalMap;     // normal map (white if not provided, means flat)
 uniform sampler2D uRoughnessMap;  // roughness map (white if not provided)
+uniform float uTextureTiling;     // texture tiling factor (1.0 = no tiling, >1.0 = repeat)
 
 // Cook-Torrance BRDF functions
 
@@ -120,8 +121,11 @@ vec3 calculateLightContribution(
 }
 
 void main() {
+    // Apply texture tiling to texture coordinates
+    vec2 tiledTexCoord = vTexCoord * uTextureTiling;
+    
     // --- Albedo (PBR standard: texture * materialColor) ---
-    vec3 albedoTex = texture2D(uDiffuseMap, vTexCoord).rgb;
+    vec3 albedoTex = texture2D(uDiffuseMap, tiledTexCoord).rgb;
     // If texture is white (default), use material color directly
     // Otherwise, tint the texture with material color (PBR standard)
     vec3 albedo = albedoTex * uMaterialColor;
@@ -129,7 +133,7 @@ void main() {
     // --- Normal ---
     // Sample normal map - if it's white (default), use vertex normal (flat)
     // Otherwise, use the normal map
-    vec3 normalTex = texture2D(uNormalMap, vTexCoord).rgb;
+    vec3 normalTex = texture2D(uNormalMap, tiledTexCoord).rgb;
     vec3 N = normalize(vTBN[2]); // default: vertex normal (flat)
     
     // Check if normal map is not white (has actual normal data)
@@ -144,7 +148,7 @@ void main() {
 
     // --- Roughness & Metallic ---
     // Sample roughness map - if it's white (default), use uniform value
-    vec3 roughnessTex = texture2D(uRoughnessMap, vTexCoord).rgb;
+    vec3 roughnessTex = texture2D(uRoughnessMap, tiledTexCoord).rgb;
     float rough = uRoughness; // default: uniform value
     
     // Check if roughness map is not white (has actual roughness data)

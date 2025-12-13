@@ -15,13 +15,6 @@ import { Billboard } from "./engine/objects/billboard";
 import { FireBillboard } from "./engine/objects/fireBillboard";
 import { Skybox } from "./engine/objects/skybox";
 
-function getRandomPosition3D(range: number) {
-  const x = (Math.random() - 0.5) * range;
-  const y = (Math.random() - 0.5) * range;
-  const z = (Math.random() - 0.5) * range;
-  return vec3.fromValues(x, y, z);
-}
-
 export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fpsRef = useRef<HTMLDivElement>(null);
@@ -49,7 +42,7 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quantizeBucket.frag"
+        "/shaders/quad.frag"
       );
 
       // Load all available meshes from public/models so we can pick randomly
@@ -67,6 +60,7 @@ export default function WebGLCanvas() {
       rockMaterial.setDiffuse("/materials/rocks/rocks_Color.jpg");
       rockMaterial.setNormal("/materials/rocks/rocks_NormalGL.jpg");
       rockMaterial.setSpecular("/materials/rocks/rocks_Roughness.jpg");
+      rockMaterial.textureTiling = 8.0; // Tile texture 8 times for more detail on terrain
 
       const barkMaterial = new Material(engine);
       barkMaterial.setDiffuse("/materials/bark/bark_Color.jpg");
@@ -128,14 +122,14 @@ export default function WebGLCanvas() {
       // Add blue-moonlight directional light (set in scene uniforms)
       // This is handled by the directional light in the shader (uLightDir)
       
-      // Add orange-yellow fire light at center
+      // Add reddish-orange to orange fire light at center
       const fireLight = new PointLight(
-        vec3.fromValues(0, 0.75, 0),  // Position: center, at fire height (matches fire position)
-        vec3.fromValues(1.0, 0.6, 0.2),  // Orange-yellow light (warm fire color)
-        15.0,  // Intensity - bright fire light
+        vec3.fromValues(0, 0.25, 0),  // Position: center, at fire height (matches fire position)
+        vec3.fromValues(1.0, 0.35, 0.0),  // Reddish-orange light (will animate to orange)
+        30.0,  // Intensity - stronger fire light
         1.0,  // Constant attenuation
-        0.09,  // Linear attenuation
-        0.032  // Quadratic attenuation
+        0.15,  // Linear attenuation (increased for faster falloff)
+        0.12  // Quadratic attenuation (increased significantly for smaller radius)
       );
       scene.addPointLight(fireLight);
       
@@ -149,7 +143,17 @@ export default function WebGLCanvas() {
       // 129x129 = 16,641 vertices, well under the limit
       // Set origin at campfire location in terrain's local space (0, 40) since terrain is offset backward by 40
       const terrainOffsetZ = -40;
-      const groundMesh = Terrain.createPlaneMesh(engine, 150, 150, 128, 128, 0.02, 45.0, 3, 0.0, -terrainOffsetZ);
+      const groundMesh = Terrain.createPlaneMesh(engine, {
+        width: 150,
+        height: 150,
+        segmentsX: 128,
+        segmentsZ: 128,
+        noiseScale: 0.02,
+        noiseAmplitude: 45.0,
+        noiseOctaves: 3,
+        originX: 0.0,
+        originZ: -terrainOffsetZ
+      });
       const groundPlane = new Node(
         scene,
         vec3.fromValues(0, -1, terrainOffsetZ), // Position slightly below origin, moved backward (Z-40) to show more terrain in front of camera
@@ -187,7 +191,7 @@ export default function WebGLCanvas() {
       // Create campfire scene with logs in triangle and rocks around
       const logMeshIndex = modelPaths.findIndex(path => path === "/models/log.obj");
       const sphereMeshIndex = modelPaths.findIndex(path => path === "/models/sphere.obj");
-      const fireCenter = vec3.fromValues(0, 0.25, 0); // Fire center raised by 1 unit (was -0.75, now 0.25)
+      const fireCenter = vec3.fromValues(0, -0.25, 0); // Fire center
       
       if (logMeshIndex !== -1) {
         const logMesh = meshes[logMeshIndex];
@@ -274,7 +278,7 @@ export default function WebGLCanvas() {
           // Position rock around fire with random offset
           const rockX = Math.cos(angle + angleOffset) * (rockRadius + radiusOffset);
           const rockZ = Math.sin(angle + angleOffset) * (rockRadius + radiusOffset);
-          const rockY = -0.75 + rockBaseScale; // Sit on ground (ground level is -0.75)
+          const rockY = -1.25 + rockBaseScale; // Sit on ground
           const position = vec3.fromValues(rockX, rockY, rockZ);
           
           // Variable scale for rocks (0.35 to 0.6)
@@ -356,29 +360,29 @@ export default function WebGLCanvas() {
         
         // Animate fire light intensity - flicker like a real fire
         const elapsed = (time - startTime) / 1000; // Time in seconds
-        const fireIntensityBase = 12.0;
-        const fireIntensityVariation = 4.0;
+        const fireIntensityBase = 25.0; // Increased base intensity
+        const fireIntensityVariation = 6.0; // Increased variation for more dramatic flicker
         // Use multiple sine waves for natural fire flicker
         const fireFlicker1 = Math.sin(elapsed * 8.0) * 0.5;
         const fireFlicker2 = Math.sin(elapsed * 13.0) * 0.3;
         const fireFlicker3 = Math.sin(elapsed * 5.0) * 0.2;
         const fireIntensity = fireIntensityBase + (fireFlicker1 + fireFlicker2 + fireFlicker3) * fireIntensityVariation;
-        fireLight.setIntensity(Math.max(8.0, fireIntensity)); // Minimum intensity of 8.0
+        fireLight.setIntensity(Math.max(18.0, fireIntensity)); // Minimum intensity increased
         
-        // Animate fire light color - subtle orange to yellow variations
+        // Animate fire light color - reddish-orange to orange variations
         // Use slow, gentle waves for subtle color shifts
-        const colorWave1 = Math.sin(elapsed * 2.0) * 0.05;
-        const colorWave2 = Math.sin(elapsed * 3.5) * 0.03;
+        const colorWave1 = Math.sin(elapsed * 2.0) * 0.06;
+        const colorWave2 = Math.sin(elapsed * 3.5) * 0.04;
         
-        // Base orange-yellow color with subtle variation
-        // Orange: RGB(1.0, 0.65, 0.0), Yellow: RGB(1.0, 0.85, 0.0)
-        const fireRed = 1.0; // Keep red constant
-        const fireGreen = 0.35 + colorWave1 + colorWave2; // Subtle shift between orange and yellow
+        // Base reddish-orange to orange color range (more red, less yellow)
+        // Reddish-orange: RGB(1.0, 0.3, 0.0), Orange: RGB(1.0, 0.5, 0.0)
+        const fireRed = 1.0; // Keep red constant at maximum
+        const fireGreen = 0.4 + colorWave1 + colorWave2; // Shift between reddish-orange (0.3) and orange (0.5)
         const fireBlue = 0.0; // No blue for warm fire tones
         
         fireLight.setColor(vec3.fromValues(
           fireRed,
-          Math.max(0.25, Math.min(0.65, fireGreen)),
+          Math.max(0.3, Math.min(0.5, fireGreen)), // Clamp between reddish-orange and orange (no yellow)
           fireBlue
         ));
         
@@ -389,7 +393,7 @@ export default function WebGLCanvas() {
         
         fireLight.setPosition(vec3.fromValues(
           0 + posWaveX,
-          0.5 + posWaveY,
+          0.0 + posWaveY,
           0 + posWaveZ
         ));
 

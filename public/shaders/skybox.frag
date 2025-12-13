@@ -141,7 +141,8 @@ void main() {
         
         float moonDot = dot(dir, moonDir);
         float moonAngle = acos(clamp(moonDot, -1.0, 1.0));
-        float moonDisk = smoothstep(0.05, 0.02, moonAngle);
+        // Steep smoothstep for a soft but defined edge (doubled the transition range)
+        float moonDisk = smoothstep(0.032, 0.028, moonAngle);
         skyColor += vec3(0.8, 0.8, 0.9) * moonDisk * 0.3;
     }
     
