@@ -84,6 +84,7 @@ export default function WebGLCanvas() {
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
+      sceneInstance = scene; // Store reference for cleanup
       // Set camera to match saved state
       // Target: [0.31, 2.62, 1.80], Yaw: -172.75°, Pitch: 2.07°
       const target = vec3.fromValues(0.31, 2.62, 1.80);
@@ -415,6 +416,8 @@ export default function WebGLCanvas() {
       requestAnimationFrame(render);
     };
 
+    let sceneInstance: Scene | null = null;
+
     init()
       .then(() => {
         // All resources loaded, fade out overlay
@@ -425,6 +428,13 @@ export default function WebGLCanvas() {
         // Even on error, hide overlay so user can see what's happening
         setIsLoading(false);
       });
+
+    // Cleanup function to remove event listeners when component unmounts
+    return () => {
+      if (sceneInstance?.camera) {
+        sceneInstance.camera.destroy();
+      }
+    };
   }, []);
 
   return (

@@ -19,6 +19,10 @@ export class Camera {
     
     // Keyboard state
     private keysPressed: Set<string> = new Set();
+    
+    // Event handler references for cleanup
+    private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
+    private handleKeyUp: ((e: KeyboardEvent) => void) | null = null;
 
     constructor(engine: Engine) {
         this.engine = engine;
@@ -27,7 +31,8 @@ export class Camera {
     }
 
     private setupKeyboardListeners() {
-        const handleKeyDown = (e: KeyboardEvent) => {
+        // Store handlers as instance properties so they can be removed later
+        this.handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
                 e.key === "ArrowLeft" || e.key === "ArrowRight" ||
                 e.key === "w" || e.key === "W" ||
@@ -39,7 +44,7 @@ export class Camera {
             }
         };
 
-        const handleKeyUp = (e: KeyboardEvent) => {
+        this.handleKeyUp = (e: KeyboardEvent) => {
             if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
                 e.key === "ArrowLeft" || e.key === "ArrowRight" ||
                 e.key === "w" || e.key === "W" ||
@@ -50,8 +55,24 @@ export class Camera {
             }
         };
 
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("keydown", this.handleKeyDown);
+        window.addEventListener("keyup", this.handleKeyUp);
+    }
+
+    /**
+     * Cleanup method to remove event listeners and prevent memory leaks
+     * Should be called when the Camera instance is destroyed or component unmounts
+     */
+    destroy() {
+        if (this.handleKeyDown) {
+            window.removeEventListener("keydown", this.handleKeyDown);
+            this.handleKeyDown = null;
+        }
+        if (this.handleKeyUp) {
+            window.removeEventListener("keyup", this.handleKeyUp);
+            this.handleKeyUp = null;
+        }
+        this.keysPressed.clear();
     }
 
     updateAspectRatio() {
