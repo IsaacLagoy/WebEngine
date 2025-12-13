@@ -1,9 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Features
+
+### 3D Rendering
+- **WebGL 2.0** rendering engine with custom shaders
+- **PBR (Physically Based Rendering)** materials with Cook-Torrance BRDF
+- **Procedural terrain generation** using fractal noise
+- **Dynamic lighting** with point lights and directional moonlight
+- **Atmospheric skybox** with Preetham atmospheric scattering
+- **Real-time fire animation** with flickering light
+
+### Scene Elements
+- **Procedurally generated terrain** with distance-based height variation
+- **Campfire scene** with:
+  - Tripod log formation
+  - Rocks arranged around the fire
+  - Animated fire light with color and intensity variation
+- **Skybox** featuring:
+  - Day/night cycle with smooth transitions
+  - Atmospheric scattering for realistic sky colors
+  - Moon rendering with soft edges
+  - Star field generation
+
+### Technical Highlights
+- **Texture tiling** support for detailed terrain textures
+- **Normal mapping** for surface detail
+- **Fog rendering** for atmospheric depth
+- **Post-processing** effects (quantization, vignette)
+- **Instanced rendering** for efficient object rendering
+
+## Tech Stack
+
+- **Next.js 16** - React framework
+- **WebGL 2.0** - 3D graphics rendering
+- **TypeScript** - Type-safe development
+- **gl-matrix** - Matrix and vector math
+- **Tailwind CSS** - Styling
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd isaac-website
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
@@ -14,23 +70,81 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+isaac-website/
+├── app/
+│   ├── components/
+│   │   └── webGL/
+│   │       ├── engine/          # WebGL engine core
+│   │       │   ├── core/        # Core systems (shader, framebuffer, etc.)
+│   │       │   ├── objects/     # 3D objects (mesh, material, scene, etc.)
+│   │       │   └── math/        # Math utilities
+│   │       └── WebGLCanvas.tsx  # Main WebGL component
+│   └── page.tsx                 # Main page
+├── public/
+│   ├── shaders/                 # GLSL shader files
+│   ├── models/                  # 3D model files (.obj)
+│   ├── materials/               # Texture maps
+│   └── scene/                   # Skybox textures
+└── README.md
+```
 
-## Learn More
+## Key Components
 
-To learn more about Next.js, take a look at the following resources:
+### WebGL Engine
+- **Engine** - Main WebGL context and rendering loop
+- **Scene** - Scene graph and rendering management
+- **Mesh** - 3D geometry loading and rendering
+- **Material** - PBR material system with texture support
+- **Terrain** - Procedural terrain generation with noise
+- **Skybox** - Atmospheric sky rendering
+- **Camera** - First-person camera controls
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Shaders
+- **default.vert/frag** - Main PBR shader with lighting
+- **skybox.vert/frag** - Atmospheric scattering skybox
+- **billboard.vert/frag** - Billboard rendering
+- **quad.vert/frag** - Fullscreen quad for post-processing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development
 
-## Deploy on Vercel
+### Building for Production
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Linting
+
+```bash
+npm run lint
+```
+
+## Customization
+
+### Terrain Parameters
+The terrain can be customized via the `TerrainParams` interface:
+- `width`, `height` - Terrain dimensions
+- `segmentsX`, `segmentsZ` - Mesh resolution
+- `noiseScale` - Feature size
+- `noiseAmplitude` - Height variation
+- `noiseOctaves` - Detail level
+- `originX`, `originZ` - Flat area center
+- `flatRadius` - Flat area radius
+
+### Lighting
+- Fire light intensity and color can be adjusted in `WebGLCanvas.tsx`
+- Moonlight color and direction are controlled by the skybox
+
+### Materials
+Materials support:
+- Diffuse/albedo textures
+- Normal maps
+- Roughness maps
+- Texture tiling
+- PBR properties (roughness, metallic, emission)
