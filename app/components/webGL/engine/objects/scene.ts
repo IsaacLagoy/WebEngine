@@ -25,6 +25,12 @@ export class Scene {
     skybox: Skybox | null = null;  // Skybox for background
     shader: Shader | null = null;
     camera: Camera;
+    
+    // Fog parameters
+    fogColor: vec3 = vec3.fromValues(0.02, 0.02, 0.08);  // Fog color (very dark blue - darkens objects)
+    fogStart: number = 30.0;   // Distance where fog starts (narrow range for testing)
+    fogEnd: number = 200.0;     // Distance where fog ends (fully fogged) - very narrow range
+    fogDensity: number = 0.4;
 
     constructor(engine: Engine, shader?: Shader) {
         this.engine = engine;
@@ -225,6 +231,27 @@ export class Scene {
                     gl.uniform3f(attLoc, 1, 0, 0);
                 }
             }
+        }
+        
+        // Fog uniforms
+        const fogColorLoc = this.engine.getUniformLocation(program, "uFogColor");
+        if (fogColorLoc !== null) {
+            gl.uniform3fv(fogColorLoc, this.fogColor);
+        }
+        
+        const fogStartLoc = this.engine.getUniformLocation(program, "uFogStart");
+        if (fogStartLoc !== null) {
+            gl.uniform1f(fogStartLoc, this.fogStart);
+        }
+        
+        const fogEndLoc = this.engine.getUniformLocation(program, "uFogEnd");
+        if (fogEndLoc !== null) {
+            gl.uniform1f(fogEndLoc, this.fogEnd);
+        }
+        
+        const fogDensityLoc = this.engine.getUniformLocation(program, "uFogDensity");
+        if (fogDensityLoc !== null) {
+            gl.uniform1f(fogDensityLoc, this.fogDensity);
         }
     }
 

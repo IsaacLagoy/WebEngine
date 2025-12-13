@@ -123,6 +123,8 @@ export class Material {
         if (metallicLoc !== null) gl.uniform1f(metallicLoc, this.metallic);
         const metallicMultiplierLoc = this.engine.getUniformLocation(program, "uMetallicMultiplier");
         if (metallicMultiplierLoc !== null) gl.uniform1f(metallicMultiplierLoc, this.metallicMultiplier);
+        const colorTemperatureLoc = this.engine.getUniformLocation(program, "uColorTemperature");
+        if (colorTemperatureLoc !== null) gl.uniform1f(colorTemperatureLoc, this.colorTemperature);
     }
 
     /**
@@ -138,6 +140,11 @@ export class Material {
                 gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
                 gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255])
             );
+            // Set texture parameters for proper sampling
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
             Material._defaultWhiteTexture = tex;
         }
         return Material._defaultWhiteTexture;

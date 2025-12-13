@@ -28,6 +28,7 @@ export class Mesh {
     // EBO (Element Buffer Object) - stores indices for indexed drawing
     indexBuffer: WebGLBuffer | null;
     numIndices: number;
+    indexType: number; // gl.UNSIGNED_SHORT or gl.UNSIGNED_INT
 
     // Cache attribute locations per shader program (avoids repeated lookups)
     private attribCache = new Map<WebGLProgram, {
@@ -57,7 +58,24 @@ export class Mesh {
         this.texcoordBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(obj.textures));
         
         // ELEMENT_ARRAY_BUFFER is for indices (defines which vertices form triangles)
-        this.indexBuffer = this.createBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.indices));
+        // Use Uint32Array if we have more than 65535 vertices (Uint16 limit)
+        const numVertices = obj.vertices.length / 3;
+        // Find max index efficiently without spreading large arrays
+        let maxIndex = 0;
+        for (let i = 0; i < obj.indices.length; i++) {
+            if (obj.indices[i] > maxIndex) {
+                maxIndex = obj.indices[i];
+            }
+        }
+        if (maxIndex > 65535 || numVertices > 65535) {
+            // Need 32-bit indices
+            this.indexBuffer = this.createBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(obj.indices));
+            this.indexType = gl.UNSIGNED_INT;
+        } else {
+            // Can use 16-bit indices (more efficient)
+            this.indexBuffer = this.createBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.indices));
+            this.indexType = gl.UNSIGNED_SHORT;
+        }
         this.numIndices = obj.indices.length;
 
         // Unbind VAO - configuration is saved, can unbind now
@@ -69,6 +87,33 @@ export class Mesh {
         const text = await response.text();
         const obj = new OBJ.Mesh(text);
         return new Mesh(engine, obj);
+    }
+
+    /**
+     * Creates a mesh from arbitrary geometry data
+     * @param engine - The WebGL engine
+     * @param vertices - Array of vertex positions (x, y, z, x, y, z, ...)
+     * @param vertexNormals - Array of vertex normals (nx, ny, nz, nx, ny, nz, ...)
+     * @param textures - Array of texture coordinates (u, v, u, v, ...)
+     * @param indices - Array of vertex indices for triangles
+     * @returns A new Mesh instance
+     */
+    static createFromGeometry(
+        engine: Engine,
+        vertices: number[],
+        vertexNormals: number[],
+        textures: number[],
+        indices: number[]
+    ): Mesh {
+        // Create a fake OBJ.Mesh-like object
+        const fakeObj = {
+            vertices: vertices,
+            vertexNormals: vertexNormals,
+            textures: textures,
+            indices: indices
+        } as OBJ.Mesh;
+
+        return new Mesh(engine, fakeObj);
     }
 
     /**
@@ -156,7 +201,8 @@ export class Mesh {
         // Bind VAO - restores all vertex attributes instantly!
         gl.bindVertexArray(this.vao);
         // Draw using indices - more efficient than drawing vertices directly
-        gl.drawElements(gl.TRIANGLES, this.obj.indices.length, gl.UNSIGNED_SHORT, 0);
+        // Use the appropriate index type (16-bit or 32-bit)
+        gl.drawElements(gl.TRIANGLES, this.obj.indices.length, this.indexType, 0);
         gl.bindVertexArray(null);
     }
 

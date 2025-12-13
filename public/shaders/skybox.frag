@@ -11,17 +11,28 @@ uniform float uSunIntensity;
 
 // Night sky color
 vec3 getNightSkyColor(vec3 dir, float intensity) {
-    float elevation = max(dir.y, 0.0);
+    // Use smooth elevation mapping - allow negative values but smooth transition
+    float elevation = dir.y;
     
-    // Dark blue at zenith, darker at horizon
+    // Dark blue at zenith, lighter at horizon
     vec3 zenithColor = vec3(0.01, 0.02, 0.08);
     vec3 horizonColor = vec3(0.05, 0.05, 0.10);
     
-    float t = pow(elevation, 0.3);
+    // Smooth transition using smoothstep to avoid sharp horizon line
+    // Map elevation from -0.2 to 1.0 to 0.0 to 1.0 for gradient
+    float normalizedElevation = smoothstep(-0.2, 0.1, elevation);
+    
+    // Use a gentler power curve to create a more gradual gradient
+    // Lower power (0.15 instead of 0.3) makes the gradient more gradual
+    // This ensures it continues darkening all the way to the zenith
+    float t = pow(max(normalizedElevation, 0.0), 0.15);
     vec3 nightSky = mix(horizonColor, zenithColor, t);
     
     // Add subtle stars (procedural noise)
-    float starNoise = fract(sin(dot(dir.xz * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
+    // Use world position for stable star positions (not affected by camera movement)
+    // Normalize world position to get consistent direction in world space
+    vec3 worldDir = normalize(vWorldPos);
+    float starNoise = fract(sin(dot(worldDir.xz * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
     if (starNoise > 0.998) {
         nightSky += vec3(0.5, 0.5, 0.6) * (starNoise - 0.998) * 500.0;
     }
@@ -53,16 +64,21 @@ float miePhase(float cosTheta, float g) {
 vec3 getDaySkyColor(vec3 dir, vec3 sunDir, float turbidity, float intensity) {
     dir = normalize(dir);
     
-    float viewElevation = max(dir.y, 0.0);
+    // Use smooth elevation mapping - allow negative values but smooth transition
+    float viewElevation = dir.y;
     float sunElevation = max(sunDir.y, 0.0);
+    
+    // Smooth the elevation for optical depth calculations to avoid sharp horizon
+    float smoothViewElevation = smoothstep(-0.3, 0.1, viewElevation);
     
     float cosTheta = dot(dir, sunDir);
     
     vec3 betaR = getRayleighCoeff(turbidity);
     vec3 betaM = getMieCoeff(turbidity);
     
-    float rayleighDepth = 8.0 * exp(-viewElevation * 4.0);
-    float mieDepth = 1.1 * exp(-viewElevation * 3.0);
+    // Use smooth elevation for optical depth to prevent sharp transitions
+    float rayleighDepth = 8.0 * exp(-smoothViewElevation * 4.0);
+    float mieDepth = 1.1 * exp(-smoothViewElevation * 3.0);
     
     float rayleighPhaseVal = rayleighPhase(cosTheta);
     float miePhaseVal = miePhase(cosTheta, 0.76);
@@ -72,7 +88,10 @@ vec3 getDaySkyColor(vec3 dir, vec3 sunDir, float turbidity, float intensity) {
     vec3 inScatter = (betaR * rayleighPhaseVal + betaM * miePhaseVal * 0.1) * 
                      (1.0 - extinction) * intensity;
     
-    float elevationGradient = pow(viewElevation, 0.4);
+    // Smooth gradient using smoothstep to avoid sharp horizon line
+    float normalizedElevation = smoothstep(-0.2, 0.2, viewElevation);
+    // Use a gentler power curve for more gradual gradient that continues to zenith
+    float elevationGradient = pow(max(normalizedElevation, 0.0), 0.2);
     vec3 zenithColor = vec3(0.3, 0.5, 0.9);
     vec3 horizonColor = vec3(0.8, 0.85, 0.95);
     vec3 baseSkyColor = mix(horizonColor, zenithColor, elevationGradient);
@@ -91,7 +110,8 @@ vec3 getDaySkyColor(vec3 dir, vec3 sunDir, float turbidity, float intensity) {
     
     // Sunrise/sunset colors when sun is near horizon
     if (sunElevation < 0.4 && sunDir.y > -0.1) {
-        float horizonFactor = exp(-viewElevation * 3.0);
+        // Use smooth elevation for horizon factor to avoid sharp transitions
+        float horizonFactor = exp(-smoothViewElevation * 3.0);
         float sunHorizonFactor = (0.4 - sunElevation) * 2.5;
         vec3 horizonTint = vec3(1.0, 0.5, 0.2) * horizonFactor * sunHorizonFactor * 0.4;
         skyColor += horizonTint;

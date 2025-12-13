@@ -13,6 +13,12 @@ uniform vec3 uLightDir;  // Directional light direction
 uniform vec3 uLightColor;  // Directional light color (moonlight)
 uniform vec3 uViewPos;
 
+// Fog uniforms
+uniform vec3 uFogColor;    // Fog color
+uniform float uFogStart;        // Distance where fog starts
+uniform float uFogEnd;         // Distance where fog ends (fully fogged)
+uniform float uFogDensity;     // Fog density (0.0 = no fog, 1.0 = full fog)
+
 // Point light uniforms
 uniform int uNumPointLights;
 uniform vec3 uPointLightPositions[MAX_POINT_LIGHTS];
@@ -213,6 +219,22 @@ void main() {
     vec3 emission = uEmission;
     
     vec3 color = ambient + Lo + emission;
+    
+    // Distance fog
+    float distance = length(vPosition - uViewPos);
+    float fogFactor = 0.0;
+    
+    if (uFogDensity > 0.0) {
+        // Linear fog
+        if (distance > uFogStart) {
+            fogFactor = clamp((uFogEnd - distance) / (uFogEnd - uFogStart), 0.0, 1.0);
+            fogFactor = 1.0 - fogFactor; // Invert so 0 = no fog, 1 = full fog
+            fogFactor *= uFogDensity; // Apply density multiplier
+        }
+        
+        // Blend with fog color
+        color = mix(color, uFogColor, fogFactor);
+    }
     
     // Tone mapping (simple Reinhard)
     color = color / (color + vec3(1.0));

@@ -36,20 +36,26 @@ float getBayerDither(int x, int y) {
     return 0.0;
 }
 
-// Sunset color palette
-vec3 getPaletteColor(int index) {
-    if (index == 0) return vec3(0.0, 0.0, 0.0);
-    if (index == 1) return vec3(0.102, 0.102, 0.243);
-    if (index == 2) return vec3(0.290, 0.173, 0.353);
-    if (index == 3) return vec3(0.478, 0.239, 0.353);
-    if (index == 4) return vec3(0.722, 0.290, 0.290);
-    if (index == 5) return vec3(0.831, 0.416, 0.227);
-    if (index == 6) return vec3(0.961, 0.541, 0.227);
-    return vec3(1.0, 0.722, 0.290);
+// Convert RGB to HSV
+vec3 rgb2hsv(vec3 c) {
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+// Convert HSV to RGB
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
 void main() {
-    const float ditherCellSize = 4.0;
+    const float ditherCellSize = 2.0;
     const float blackThreshold = 0.01;
     const float clearcoatThreshold = 0.85;
     
@@ -77,29 +83,29 @@ void main() {
         return;
     }
     
-    // Process and quantize - normalize bright areas instead of cutting them off
-    // Clamp gray to [0, clearcoatThreshold] before normalization to prevent overflow
-    gray = clamp(gray, 0.0, clearcoatThreshold);
-    gray = pow(gray / clearcoatThreshold, 0.6);
+    // Convert RGB to HSV to preserve hue and saturation
+    vec3 hsv = rgb2hsv(cellColor.rgb);
     
+    // Process and quantize the value (brightness) component
+    // Clamp value to [0, clearcoatThreshold] before normalization
+    float value = clamp(hsv.z, 0.0, clearcoatThreshold);
+    value = pow(value / clearcoatThreshold, 0.6);
+    
+    // Apply dithering to the value component
     vec2 ditherPos = mod(cellIndex, float(n));
     float ditherValue = getBayerDither(int(ditherPos.x), int(ditherPos.y)) / (float(n) * float(n)) - 0.5;
-    gray = clamp(gray + ditherStrength * ditherValue, 0.0, 1.0);
+    value = clamp(value + ditherStrength * ditherValue, 0.0, 1.0);
     
+    // Quantize the value component
     float numBuckets = min(max(uQuantizationLevel, 1.0), 8.0);
-    int bucketIndex = int(floor(gray * numBuckets));
-    int maxBucketIndex = int(numBuckets - 1.0);
-    if (bucketIndex < 0) bucketIndex = 0;
-    if (bucketIndex > maxBucketIndex) bucketIndex = maxBucketIndex;
+    float quantizedValue = floor(value * numBuckets) / numBuckets;
+    quantizedValue = clamp(quantizedValue, 0.0, 1.0);
     
-    int paletteIndex;
-    if (numBuckets <= 1.0) {
-        paletteIndex = 0;
-    } else {
-        paletteIndex = int((float(bucketIndex) / (numBuckets - 1.0)) * 7.0);
-    }
-    if (paletteIndex < 0) paletteIndex = 0;
-    if (paletteIndex > 7) paletteIndex = 7;
+    // Reconstruct HSV with quantized value but original hue and saturation
+    hsv.z = quantizedValue;
     
-    gl_FragColor = vec4(getPaletteColor(paletteIndex), cellColor.a);
+    // Convert back to RGB
+    vec3 quantizedColor = hsv2rgb(hsv);
+    
+    gl_FragColor = vec4(quantizedColor, cellColor.a);
 }

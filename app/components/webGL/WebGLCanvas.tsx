@@ -5,6 +5,7 @@ import { Scene } from "./engine/objects/scene";
 import { Engine } from "./engine/objects/engine";
 import { Mesh } from "./engine/objects/mesh";
 import { Node } from "./engine/objects/node";
+import { Terrain } from "./engine/objects/terrain";
 import { vec3, quat } from "gl-matrix";
 import { Material } from "./engine/objects/material";
 import { randomVec3 } from "./math/random";
@@ -25,41 +26,6 @@ export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fpsRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const keysPressed = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    // Keyboard event handlers for camera controls
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
-          e.key === "ArrowLeft" || e.key === "ArrowRight" ||
-          e.key === "w" || e.key === "W" ||
-          e.key === "a" || e.key === "A" ||
-          e.key === "s" || e.key === "S" ||
-          e.key === "d" || e.key === "D") {
-        e.preventDefault();
-        keysPressed.current.add(e.key.toLowerCase());
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
-          e.key === "ArrowLeft" || e.key === "ArrowRight" ||
-          e.key === "w" || e.key === "W" ||
-          e.key === "a" || e.key === "A" ||
-          e.key === "s" || e.key === "S" ||
-          e.key === "d" || e.key === "D") {
-        keysPressed.current.delete(e.key.toLowerCase());
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -83,24 +49,14 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quad.frag"
+        "/shaders/quantizeBucket.frag"
       );
 
       // Load all available meshes from public/models so we can pick randomly
       const modelPaths = [
-        "/models/art_table.obj",
-        "/models/bass.obj",
-        "/models/battery.obj",
-        "/models/cube.obj",
-        "/models/flounder.obj",
-        "/models/herring.obj",
-        "/models/key.obj",
-        "/models/lamp.obj",
-        "/models/office_chair.obj",
+        "/models/log.obj",
         "/models/sphere.obj",
-        "/models/squid.obj",
-        "/models/tilapia.obj",
-        "/models/tuna.obj",
+        "/models/cube.obj",
       ];
 
       const meshes = await Promise.all(
@@ -117,15 +73,40 @@ export default function WebGLCanvas() {
       barkMaterial.setNormal("/materials/bark/bark_NormalGL.jpg");
       barkMaterial.setSpecular("/materials/bark/bark_Roughness.jpg");
 
+      const logMaterial = new Material(engine);
+      logMaterial.setDiffuse("/materials/log/log_albedo.jpg");
+      logMaterial.setNormal("/materials/log/log_normal.png");
+      logMaterial.setSpecular("/materials/log/log_roughness.jpg");
+
       const plainMaterial = new Material(engine);
       plainMaterial.roughnessMultiplier = 0.3;  // Lower roughness = shinier (more specular)
       plainMaterial.metallic = 0.8;  // Higher metallic = more reflective
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
-      // Position camera at ground level (eye height ~1.8 units) looking forward
-      scene.camera.setPosition(vec3.fromValues(0, 3, 10));
-      scene.camera.target = vec3.fromValues(0, 5, 0); // Look at origin
+      // Set camera to match saved state
+      // Target: [0.31, 2.62, 1.80], Yaw: -172.75°, Pitch: 2.07°
+      const target = vec3.fromValues(0.31, 2.62, 1.80);
+      const yawRad = (-172.75 * Math.PI) / 180;
+      const pitchRad = (2.07 * Math.PI) / 180;
+      
+      // Calculate forward direction from yaw and pitch (normalized)
+      const forward = vec3.create();
+      forward[1] = Math.sin(pitchRad); // Pitch component
+      const cosPitch = Math.cos(pitchRad);
+      forward[0] = cosPitch * Math.sin(yawRad); // Yaw X component
+      forward[2] = cosPitch * Math.cos(yawRad); // Yaw Z component
+      
+      // Calculate position from target and forward direction
+      // Use a reasonable distance estimate (10 units) to position camera
+      const distance = 10.0;
+      const position = vec3.create();
+      const forwardScaled = vec3.create();
+      vec3.scale(forwardScaled, forward, distance);
+      vec3.subtract(position, target, forwardScaled);
+      
+      scene.camera.setPosition(position);
+      scene.camera.target = target;
       scene.camera.updateMatrices();
       
       // Create skybox with Preetham atmospheric scattering
@@ -148,7 +129,7 @@ export default function WebGLCanvas() {
       
       // Add orange-yellow fire light at center
       const fireLight = new PointLight(
-        vec3.fromValues(0, 0.5, 0),  // Position: center, at fire height (matches fire position)
+        vec3.fromValues(0, 0.75, 0),  // Position: center, at fire height (matches fire position)
         vec3.fromValues(1.0, 0.6, 0.2),  // Orange-yellow light (warm fire color)
         15.0,  // Intensity - bright fire light
         1.0,  // Constant attenuation
@@ -162,23 +143,24 @@ export default function WebGLCanvas() {
       
       const nodes: Node[] = [];
 
-      // Create ground plane using a stretched cube
-      const cubeMeshIndex = modelPaths.findIndex(path => path === "/models/cube.obj");
-      if (cubeMeshIndex !== -1) {
-        const cubeMesh = meshes[cubeMeshIndex];
-        const groundPlane = new Node(
-          scene,
-          vec3.fromValues(0, -1, 0), // Position slightly below origin
-          vec3.fromValues(30, 0.5, 30), // Scale: large flat plane, thin
-          quat.create(),
-          cubeMesh,
-          rockMaterial
-        );
-        // Mark as ground plane for special rendering if needed
-        (groundPlane as any).isGroundPlane = true;
-        nodes.push(groundPlane);
-        scene.add(groundPlane);
-      }
+      // Create ground plane using programmatically generated mesh
+      // Using 128x128 segments to stay under Uint16 index limit (65,535 vertices max)
+      // 129x129 = 16,641 vertices, well under the limit
+      // Set origin at campfire location in terrain's local space (0, 40) since terrain is offset backward by 40
+      const terrainOffsetZ = -40;
+      const groundMesh = Terrain.createPlaneMesh(engine, 150, 150, 128, 128, 0.02, 45.0, 3, 0.0, -terrainOffsetZ);
+      const groundPlane = new Node(
+        scene,
+        vec3.fromValues(0, -1, terrainOffsetZ), // Position slightly below origin, moved backward (Z-40) to show more terrain in front of camera
+        vec3.fromValues(1, 1, 1), // Scale: 1:1 since mesh is already 30x30
+        quat.create(),
+        groundMesh,
+        rockMaterial
+      );
+      // Mark as ground plane for special rendering if needed
+      (groundPlane as any).isGroundPlane = true;
+      nodes.push(groundPlane);
+      scene.add(groundPlane);
 
       // Create fire billboard at center
       const billboardShader = await Shader.create(
@@ -201,55 +183,128 @@ export default function WebGLCanvas() {
       // await centerFire.init(billboardShader);
       // scene.addFireBillboard(centerFire);
       
-      // Create a few objects on the ground
-      const numObjects = 10; // Just a few objects
-      const spawnRange = 20; // Objects within 20 units of center
-      
-      // Use sphere mesh for objects on the ground
+      // Create campfire scene with logs in triangle and rocks around
+      const logMeshIndex = modelPaths.findIndex(path => path === "/models/log.obj");
       const sphereMeshIndex = modelPaths.findIndex(path => path === "/models/sphere.obj");
-      if (sphereMeshIndex === -1) {
-        console.warn("Could not find sphere.obj mesh");
-      } else {
-        const sphereMesh = meshes[sphereMeshIndex];
+      const fireCenter = vec3.fromValues(0, 0.25, 0); // Fire center raised by 1 unit (was -0.75, now 0.25)
+      
+      if (logMeshIndex !== -1) {
+        const logMesh = meshes[logMeshIndex];
+        const logBaseScale = 0.01 / 2; // Base scale for logs (scaled down by 2)
+        const numLogs = 3; // Number of logs in tripod
         
-        // Create objects positioned on the ground
-        for (let i = 0; i < numObjects; i++) {
-          // Random scale between 0.5 and 1.5
-          const scale = 0.5 + Math.random() * 1.0;
-          const scaleVec = vec3.fromValues(scale, scale, scale);
+        // Tripod/teepee formation: logs lean against each other
+        const logBaseRadius = 0.6; // Distance from center where log bottoms are
+        const logTopHeight = 1.6; // Height where log tops meet (increased for higher angle)
+        const logAngles = [0, 120, 240]; // 120 degrees apart (triangle)
+        
+        for (let i = 0; i < numLogs; i++) {
+          const angle = (logAngles[i] * Math.PI) / 180; // Convert to radians
           
-          // Random position on ground (X and Z random, Y = scale/2 to sit on ground)
-          // Ground plane is at y=-1 with height 0.5, so top surface is at y=-0.75
-          const x = (Math.random() - 0.5) * spawnRange;
-          const z = (Math.random() - 0.5) * spawnRange;
-          const y = -0.75 + scale * 0.5; // Sit on top of ground plane
-          const position = vec3.fromValues(x, y, z);
-
-          // Distribute materials evenly to create 3 instance groups
-          const material = i % 3 === 0 ? rockMaterial : i % 3 === 1 ? plainMaterial : barkMaterial;
-
-          const node = new Node(
+          // Scale: X and Z same, Y is double (length - extend vertically)
+          const scaleX = logBaseScale;
+          const scaleY = logBaseScale * 2; // Double length in Y axis
+          const scaleZ = logBaseScale;
+          const scaleVec = vec3.fromValues(scaleX, scaleY, scaleZ);
+          
+          // Position log bottom at base radius, top meets at center top
+          const logBottomX = Math.cos(angle) * logBaseRadius;
+          const logBottomZ = Math.sin(angle) * logBaseRadius;
+          const logBottomY = fireCenter[1] + logBaseScale; // Bottom raised by 1 unit
+          
+          // Calculate direction from bottom to top (where logs meet)
+          const topX = fireCenter[0];
+          const topY = fireCenter[1] + logTopHeight;
+          const topZ = fireCenter[2];
+          
+          const directionX = topX - logBottomX;
+          const directionY = topY - logBottomY;
+          const directionZ = topZ - logBottomZ;
+          
+          // Position is at the bottom of the log
+          const position = vec3.fromValues(logBottomX, logBottomY, logBottomZ);
+          
+          // Calculate rotation to lean log toward center top
+          // First rotate to point in the direction, then account for log's Y extension
+          const horizontalAngle = Math.atan2(directionX, directionZ);
+          const verticalAngle = Math.atan2(directionY, Math.sqrt(directionX * directionX + directionZ * directionZ));
+          
+          // Rotate log: first around Y to face the right direction, then around X to lean
+          const rotation = quat.create();
+          quat.fromEuler(rotation, 
+            (verticalAngle * 180) / Math.PI, // Pitch (lean angle)
+            (horizontalAngle * 180) / Math.PI, // Yaw (direction)
+            0 // No roll
+          );
+          
+          const logNode = new Node(
             scene,
             position,
             scaleVec,
-            quat.create(),
-            sphereMesh,
-            material
+            rotation,
+            logMesh,
+            logMaterial
           );
-
-          // Random rotation but no angular velocity (objects stay in place)
-          quat.fromEuler(node.rotation, 
-            Math.random() * 360, 
-            Math.random() * 360, 
-            Math.random() * 360
-          );
-
-          nodes.push(node);
-          scene.add(node);
+          
+          nodes.push(logNode);
+          scene.add(logNode);
         }
         
-        console.log(`Created ${numObjects} sphere instances for instancing test`);
-        console.log(`Expected ~3 instance groups (one per material)`);
+        console.log(`Added ${numLogs} logs in tripod formation`);
+      } else {
+        console.warn("Could not find log.obj mesh");
+      }
+      
+      // Add rocks (spheres) around the fire
+      if (sphereMeshIndex !== -1 && logMeshIndex !== -1) {
+        const sphereMesh = meshes[sphereMeshIndex];
+        const numRocks = 18; // Number of rocks around the fire (3x original)
+        const rockRadius = 2.5; // Base distance from fire center
+        const rockBaseScale = 0.35; // Base scale for rocks (increased from 0.2)
+        const rockScaleVariation = 0.25; // Scale variation range
+        
+        for (let i = 0; i < numRocks; i++) {
+          const angle = (i / numRocks) * Math.PI * 2; // Evenly spaced around circle
+          
+          // Add random offset to position for more natural placement
+          const radiusOffset = (Math.random() - 0.5) * 0.8; // Random radius variation
+          const angleOffset = (Math.random() - 0.5) * 0.3; // Random angle variation
+          
+          // Position rock around fire with random offset
+          const rockX = Math.cos(angle + angleOffset) * (rockRadius + radiusOffset);
+          const rockZ = Math.sin(angle + angleOffset) * (rockRadius + radiusOffset);
+          const rockY = -0.75 + rockBaseScale; // Sit on ground (ground level is -0.75)
+          const position = vec3.fromValues(rockX, rockY, rockZ);
+          
+          // Variable scale for rocks (0.35 to 0.6)
+          const scale = rockBaseScale + Math.random() * rockScaleVariation;
+          const scaleVec = vec3.fromValues(scale, scale, scale);
+          
+          // Random rotation for rocks
+          const rotation = quat.create();
+          quat.fromEuler(rotation,
+            Math.random() * 360,
+            Math.random() * 360,
+            Math.random() * 360
+          );
+          
+          // Use rock material for the rocks
+          const rockNode = new Node(
+            scene,
+            position,
+            scaleVec,
+            rotation,
+            sphereMesh,
+            rockMaterial
+          );
+          
+          nodes.push(rockNode);
+          scene.add(rockNode);
+        }
+        
+        console.log(`Added ${numRocks} rocks around fire`);
+      } else {
+        console.warn("Could not find sphere.obj mesh for rocks");
       }
 
       let lastTime = performance.now();
@@ -259,6 +314,10 @@ export default function WebGLCanvas() {
       let frameCount = 0;
       let fpsLastTime = performance.now();
       const fpsUpdateInterval = 500; // Update FPS display every 500ms
+      
+      // Camera state printing
+      let cameraPrintLastTime = performance.now();
+      const cameraPrintInterval = 1000; // Print camera state every 1 second
 
       function render(time: number) {
         // Always resize canvas first - this ensures dimensions are correct
@@ -274,113 +333,14 @@ export default function WebGLCanvas() {
         const dt = Math.min((time - lastTime) / 1000, 0.1);
         lastTime = time;
         
-        // Handle camera rotation with arrow keys
-        const rotationSpeed = 1.5; // radians per second
-        const rotationDelta = rotationSpeed * dt;
-        const moveSpeed = 5.0; // units per second
-        const moveDelta = moveSpeed * dt;
+        // Update camera controls (handled by Camera class)
+        scene.camera.update(dt);
         
-        if (keysPressed.current.size > 0) {
-          const camera = scene.camera;
-          
-          // Calculate forward direction (from position to target)
-          const forward = vec3.create();
-          vec3.subtract(forward, camera.target, camera.position);
-          const distance = vec3.length(forward);
-          vec3.normalize(forward, forward);
-          
-          // Calculate right direction (cross product of forward and up)
-          const right = vec3.create();
-          vec3.cross(right, forward, camera.up);
-          vec3.normalize(right, right);
-          
-          // Calculate actual up direction (cross product of right and forward)
-          const up = vec3.create();
-          vec3.cross(up, right, forward);
-          vec3.normalize(up, up);
-          
-          let horizontalRotation = 0.0; // Yaw (around Y axis)
-          let verticalRotation = 0.0; // Pitch (around right axis)
-          let moveDirection = vec3.create(); // Movement direction
-          
-          // Arrow key rotation
-          if (keysPressed.current.has("arrowleft")) {
-            // Rotate left (yaw left)
-            horizontalRotation = rotationDelta;
-          }
-          if (keysPressed.current.has("arrowright")) {
-            // Rotate right (yaw right)
-            horizontalRotation = -rotationDelta;
-          }
-          if (keysPressed.current.has("arrowup")) {
-            // Look up (pitch up)
-            verticalRotation = rotationDelta;
-          }
-          if (keysPressed.current.has("arrowdown")) {
-            // Look down (pitch down)
-            verticalRotation = -rotationDelta;
-          }
-          
-          // WASD movement
-          if (keysPressed.current.has("w")) {
-            // Move forward
-            vec3.add(moveDirection, moveDirection, forward);
-          }
-          if (keysPressed.current.has("s")) {
-            // Move backward
-            vec3.subtract(moveDirection, moveDirection, forward);
-          }
-          if (keysPressed.current.has("a")) {
-            // Move left
-            vec3.subtract(moveDirection, moveDirection, right);
-          }
-          if (keysPressed.current.has("d")) {
-            // Move right
-            vec3.add(moveDirection, moveDirection, right);
-          }
-          
-          // Apply horizontal rotation (yaw) - rotate around Y axis
-          if (horizontalRotation !== 0.0) {
-            const yawAxis = vec3.fromValues(0, 1, 0);
-            const rotationQuat = quat.create();
-            quat.setAxisAngle(rotationQuat, yawAxis, horizontalRotation);
-            vec3.transformQuat(forward, forward, rotationQuat);
-          }
-          
-          // Apply vertical rotation (pitch) - rotate around right axis
-          if (verticalRotation !== 0.0) {
-            const pitchAxis = right;
-            const rotationQuat = quat.create();
-            quat.setAxisAngle(rotationQuat, pitchAxis, verticalRotation);
-            vec3.transformQuat(forward, forward, rotationQuat);
-            
-            // Clamp pitch to prevent flipping
-            const pitchAngle = Math.asin(forward[1]);
-            const maxPitch = Math.PI / 2.0 - 0.1; // Almost 90 degrees
-            if (Math.abs(pitchAngle) > maxPitch) {
-              forward[1] = Math.sign(forward[1]) * Math.sin(maxPitch);
-              const horizontalLength = Math.sqrt(forward[0] * forward[0] + forward[2] * forward[2]);
-              const scale = Math.cos(maxPitch) / horizontalLength;
-              forward[0] *= scale;
-              forward[2] *= scale;
-            }
-          }
-          
-          // Apply movement
-          if (vec3.length(moveDirection) > 0.0) {
-            vec3.normalize(moveDirection, moveDirection);
-            vec3.scale(moveDirection, moveDirection, moveDelta);
-            vec3.add(camera.position, camera.position, moveDirection);
-            vec3.add(camera.target, camera.target, moveDirection);
-            camera.updateMatrices();
-          }
-          
-          // Update camera target based on new forward direction
-          if (horizontalRotation !== 0.0 || verticalRotation !== 0.0) {
-            vec3.scale(forward, forward, distance);
-            vec3.add(camera.target, camera.position, forward);
-            camera.updateMatrices();
-          }
+        // Print camera state periodically
+        const cameraPrintElapsed = time - cameraPrintLastTime;
+        if (cameraPrintElapsed >= cameraPrintInterval) {
+          scene.camera.printState();
+          cameraPrintLastTime = time;
         }
         
         // Calculate and update framerate
@@ -438,15 +398,15 @@ export default function WebGLCanvas() {
         engine.use(); // Set screen as render location
         engine.framebuffer.render((gl, program) => {
           // Set quantize shader uniforms
-          // const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
-          // if (quantizationLevelLoc !== null) {
-          //   gl.uniform1f(quantizationLevelLoc, 8.0);
-          // }
+          const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
+          if (quantizationLevelLoc !== null) {
+            gl.uniform1f(quantizationLevelLoc, 8.0);
+          }
           
-          // const resolutionLoc = gl.getUniformLocation(program, "uResolution");
-          // if (resolutionLoc !== null) {
-          //   gl.uniform2f(resolutionLoc, engine.width, engine.height);
-          // }
+          const resolutionLoc = gl.getUniformLocation(program, "uResolution");
+          if (resolutionLoc !== null) {
+            gl.uniform2f(resolutionLoc, engine.width, engine.height);
+          }
         });
 
         requestAnimationFrame(render);

@@ -4,8 +4,8 @@ export default function Home() {
       {/* Welcome Section - Full Viewport */}
       <section className="min-h-screen flex items-center justify-center">
         <h1 className="text-4xl md:text-5xl font-bold text-white">
-          {/* Welcome &lt;3 */}
-          Text
+          Welcome &lt;3
+          {/* Text */}
         </h1>
       </section>
 
