@@ -12,6 +12,7 @@ import { Shader } from "./engine/core/shader";
 import { PointLight } from "./engine/objects/pointLight";
 import { Billboard } from "./engine/objects/billboard";
 import { FireBillboard } from "./engine/objects/fireBillboard";
+import { Skybox } from "./engine/objects/skybox";
 
 function getRandomPosition3D(range: number) {
   const x = (Math.random() - 0.5) * range;
@@ -24,6 +25,41 @@ export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fpsRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const keysPressed = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Keyboard event handlers for camera controls
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
+          e.key === "ArrowLeft" || e.key === "ArrowRight" ||
+          e.key === "w" || e.key === "W" ||
+          e.key === "a" || e.key === "A" ||
+          e.key === "s" || e.key === "S" ||
+          e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        keysPressed.current.add(e.key.toLowerCase());
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
+          e.key === "ArrowLeft" || e.key === "ArrowRight" ||
+          e.key === "w" || e.key === "W" ||
+          e.key === "a" || e.key === "A" ||
+          e.key === "s" || e.key === "S" ||
+          e.key === "d" || e.key === "D") {
+        keysPressed.current.delete(e.key.toLowerCase());
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,9 +123,25 @@ export default function WebGLCanvas() {
       
       // Match C++: Scene constructor takes shader
       const scene = new Scene(engine, program);
-      scene.camera.setPosition(vec3.fromValues(0, 15, 25));
-      scene.camera.target = vec3.fromValues(0, 0, 0); // Look at origin
+      // Position camera at ground level (eye height ~1.8 units) looking forward
+      scene.camera.setPosition(vec3.fromValues(0, 3, 10));
+      scene.camera.target = vec3.fromValues(0, 5, 0); // Look at origin
       scene.camera.updateMatrices();
+      
+      // Create skybox with Preetham atmospheric scattering
+      const skyboxShader = await Shader.create(
+        gl,
+        "/shaders/skybox.vert",
+        "/shaders/skybox.frag"
+      );
+      const skyboxCubeMeshIndex = modelPaths.findIndex(path => path === "/models/cube.obj");
+      if (skyboxCubeMeshIndex !== -1) {
+        const skyboxCubeMesh = meshes[skyboxCubeMeshIndex];
+        const skybox = new Skybox(engine, scene, skyboxCubeMesh, skyboxShader);
+        scene.skybox = skybox;
+        // Set to early night (0.9 = late evening/early night, moon visible)
+        scene.setCycleTime(0.785);
+      }
       
       // Add blue-moonlight directional light (set in scene uniforms)
       // This is handled by the directional light in the shader (uLightDir)
@@ -222,6 +274,115 @@ export default function WebGLCanvas() {
         const dt = Math.min((time - lastTime) / 1000, 0.1);
         lastTime = time;
         
+        // Handle camera rotation with arrow keys
+        const rotationSpeed = 1.5; // radians per second
+        const rotationDelta = rotationSpeed * dt;
+        const moveSpeed = 5.0; // units per second
+        const moveDelta = moveSpeed * dt;
+        
+        if (keysPressed.current.size > 0) {
+          const camera = scene.camera;
+          
+          // Calculate forward direction (from position to target)
+          const forward = vec3.create();
+          vec3.subtract(forward, camera.target, camera.position);
+          const distance = vec3.length(forward);
+          vec3.normalize(forward, forward);
+          
+          // Calculate right direction (cross product of forward and up)
+          const right = vec3.create();
+          vec3.cross(right, forward, camera.up);
+          vec3.normalize(right, right);
+          
+          // Calculate actual up direction (cross product of right and forward)
+          const up = vec3.create();
+          vec3.cross(up, right, forward);
+          vec3.normalize(up, up);
+          
+          let horizontalRotation = 0.0; // Yaw (around Y axis)
+          let verticalRotation = 0.0; // Pitch (around right axis)
+          let moveDirection = vec3.create(); // Movement direction
+          
+          // Arrow key rotation
+          if (keysPressed.current.has("arrowleft")) {
+            // Rotate left (yaw left)
+            horizontalRotation = rotationDelta;
+          }
+          if (keysPressed.current.has("arrowright")) {
+            // Rotate right (yaw right)
+            horizontalRotation = -rotationDelta;
+          }
+          if (keysPressed.current.has("arrowup")) {
+            // Look up (pitch up)
+            verticalRotation = rotationDelta;
+          }
+          if (keysPressed.current.has("arrowdown")) {
+            // Look down (pitch down)
+            verticalRotation = -rotationDelta;
+          }
+          
+          // WASD movement
+          if (keysPressed.current.has("w")) {
+            // Move forward
+            vec3.add(moveDirection, moveDirection, forward);
+          }
+          if (keysPressed.current.has("s")) {
+            // Move backward
+            vec3.subtract(moveDirection, moveDirection, forward);
+          }
+          if (keysPressed.current.has("a")) {
+            // Move left
+            vec3.subtract(moveDirection, moveDirection, right);
+          }
+          if (keysPressed.current.has("d")) {
+            // Move right
+            vec3.add(moveDirection, moveDirection, right);
+          }
+          
+          // Apply horizontal rotation (yaw) - rotate around Y axis
+          if (horizontalRotation !== 0.0) {
+            const yawAxis = vec3.fromValues(0, 1, 0);
+            const rotationQuat = quat.create();
+            quat.setAxisAngle(rotationQuat, yawAxis, horizontalRotation);
+            vec3.transformQuat(forward, forward, rotationQuat);
+          }
+          
+          // Apply vertical rotation (pitch) - rotate around right axis
+          if (verticalRotation !== 0.0) {
+            const pitchAxis = right;
+            const rotationQuat = quat.create();
+            quat.setAxisAngle(rotationQuat, pitchAxis, verticalRotation);
+            vec3.transformQuat(forward, forward, rotationQuat);
+            
+            // Clamp pitch to prevent flipping
+            const pitchAngle = Math.asin(forward[1]);
+            const maxPitch = Math.PI / 2.0 - 0.1; // Almost 90 degrees
+            if (Math.abs(pitchAngle) > maxPitch) {
+              forward[1] = Math.sign(forward[1]) * Math.sin(maxPitch);
+              const horizontalLength = Math.sqrt(forward[0] * forward[0] + forward[2] * forward[2]);
+              const scale = Math.cos(maxPitch) / horizontalLength;
+              forward[0] *= scale;
+              forward[2] *= scale;
+            }
+          }
+          
+          // Apply movement
+          if (vec3.length(moveDirection) > 0.0) {
+            vec3.normalize(moveDirection, moveDirection);
+            vec3.scale(moveDirection, moveDirection, moveDelta);
+            vec3.add(camera.position, camera.position, moveDirection);
+            vec3.add(camera.target, camera.target, moveDirection);
+            camera.updateMatrices();
+          }
+          
+          // Update camera target based on new forward direction
+          if (horizontalRotation !== 0.0 || verticalRotation !== 0.0) {
+            vec3.scale(forward, forward, distance);
+            vec3.add(camera.target, camera.position, forward);
+            camera.updateMatrices();
+          }
+        }
+        
         // Calculate and update framerate
         frameCount++;
         const fpsElapsed = time - fpsLastTime;
@@ -242,6 +403,34 @@ export default function WebGLCanvas() {
         const fireFlicker3 = Math.sin(elapsed * 5.0) * 0.2;
         const fireIntensity = fireIntensityBase + (fireFlicker1 + fireFlicker2 + fireFlicker3) * fireIntensityVariation;
         fireLight.setIntensity(Math.max(8.0, fireIntensity)); // Minimum intensity of 8.0
+        
+        // Animate fire light color - subtle orange to yellow variations
+        // Use slow, gentle waves for subtle color shifts
+        const colorWave1 = Math.sin(elapsed * 2.0) * 0.05;
+        const colorWave2 = Math.sin(elapsed * 3.5) * 0.03;
+        
+        // Base orange-yellow color with subtle variation
+        // Orange: RGB(1.0, 0.65, 0.0), Yellow: RGB(1.0, 0.85, 0.0)
+        const fireRed = 1.0; // Keep red constant
+        const fireGreen = 0.35 + colorWave1 + colorWave2; // Subtle shift between orange and yellow
+        const fireBlue = 0.0; // No blue for warm fire tones
+        
+        fireLight.setColor(vec3.fromValues(
+          fireRed,
+          Math.max(0.25, Math.min(0.65, fireGreen)),
+          fireBlue
+        ));
+        
+        // Animate fire light position - subtle movement
+        const posWaveX = Math.sin(elapsed * 1.5) * 0.15 + Math.sin(elapsed * 2.7) * 0.08;
+        const posWaveY = Math.sin(elapsed * 1.2) * 0.1 + Math.sin(elapsed * 3.1) * 0.05;
+        const posWaveZ = Math.sin(elapsed * 1.8) * 0.12 + Math.sin(elapsed * 2.3) * 0.06;
+        
+        fireLight.setPosition(vec3.fromValues(
+          0 + posWaveX,
+          0.5 + posWaveY,
+          0 + posWaveZ
+        ));
 
         engine.update(); // Clears engine.framebuffer
         scene.update(dt);

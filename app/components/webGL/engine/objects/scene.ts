@@ -8,6 +8,7 @@ import { Mesh } from "./mesh";
 import { Material } from "./material";
 import { Billboard } from "./billboard";
 import { FireBillboard } from "./fireBillboard";
+import { Skybox } from "./skybox";
 import { vec3 } from "gl-matrix";
 /**
  * Scene class - contains all objects in the 3D world
@@ -21,6 +22,7 @@ export class Scene {
     pointLights: PointLight[] = [];  // Point lights in the scene
     billboards: Billboard[] = [];  // Billboards
     fireBillboards: FireBillboard[] = [];  // Animated fire billboards
+    skybox: Skybox | null = null;  // Skybox for background
     shader: Shader | null = null;
     camera: Camera;
 
@@ -142,20 +144,31 @@ export class Scene {
             gl.uniform3f(ambientLoc, 1.0, 1.0, 1.0); // White ambient
         }
         
-        // Directional light (scene-level) - blue moonlight
+        // Directional light (scene-level) - from active celestial body (sun or moon)
         // Light direction should point FROM surface TOWARD the light source
-        // Since moonlight comes from above, the direction vector should point up (positive Y)
         const lightDirLoc = this.engine.getUniformLocation(program, "uLightDir");
-        if (lightDirLoc !== null) {
-            // Direction pointing up and slightly backward (toward moonlight source above)
-            gl.uniform3fv(lightDirLoc, [-0.2, 1, -0.3]);
-        }
-        
-        // Set directional light color to blue-moonlight
         const lightColorLoc = this.engine.getUniformLocation(program, "uLightColor");
-        if (lightColorLoc !== null) {
-            // Blue-moonlight color (cool blue-white)
-            gl.uniform3f(lightColorLoc, 0.4, 0.5, 0.8);
+        
+        if (this.skybox) {
+            // Get light direction and color from skybox
+            const lightDir = this.skybox.getLightDirection();
+            const lightColor = this.skybox.getLightColor();
+            
+            if (lightDirLoc !== null && lightDir) {
+                gl.uniform3fv(lightDirLoc, lightDir);
+            }
+            
+            if (lightColorLoc !== null && lightColor) {
+                gl.uniform3fv(lightColorLoc, lightColor);
+            }
+        } else {
+            // Fallback: default moonlight if no skybox
+            if (lightDirLoc !== null) {
+                gl.uniform3fv(lightDirLoc, [-0.2, 1, -0.3]);
+            }
+            if (lightColorLoc !== null) {
+                gl.uniform3f(lightColorLoc, 0.4, 0.5, 0.8);
+            }
         }
         
         // Point lights (scene-level)
@@ -260,14 +273,31 @@ export class Scene {
     }
 
     /**
+     * Set the day-night cycle time (0.0 to 1.0)
+     * 0.0 = night, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1.0 = night
+     */
+    setCycleTime(time: number) {
+        if (this.skybox) {
+            this.skybox.setCycleTime(time);
+        }
+    }
+
+    /**
      * Render the scene using the given shader program
      * @param program - Shader program to use for rendering
      */
     render() {
-        if (!this.shader) return;
         const gl = this.gl();
         // Ensure depth testing is enabled for 3D rendering
         gl.enable(gl.DEPTH_TEST);
+        
+        // Render skybox first (before main scene)
+        if (this.skybox) {
+            this.skybox.render();
+        }
+        
+        // Render main scene
+        if (!this.shader) return;
         this.shader.use();
         this.draw(this.shader.program);
     }

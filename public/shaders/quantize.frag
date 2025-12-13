@@ -53,6 +53,9 @@ void main() {
     const float blackThreshold = 0.01;
     const float clearcoatThreshold = 0.85;
     
+    // Night sky color (pale night sky)
+    vec3 nightSkyColor = vec3(0.2, 0.2, 0.35);
+    
     // Calculate dither cells (will be square in pixel space)
     vec2 cellIndex = floor(gl_FragCoord.xy / ditherCellSize);
     vec2 cellCenter = (cellIndex + 0.5) * ditherCellSize;
@@ -67,6 +70,12 @@ void main() {
     }
     
     float gray = dot(cellColor.rgb, vec3(0.299, 0.587, 0.114));
+    
+    // Check if this is a clearcoat (bright) area - render as night sky color
+    if (gray >= clearcoatThreshold) {
+        gl_FragColor = vec4(nightSkyColor, cellColor.a);
+        return;
+    }
     
     // Process and quantize - normalize bright areas instead of cutting them off
     // Clamp gray to [0, clearcoatThreshold] before normalization to prevent overflow

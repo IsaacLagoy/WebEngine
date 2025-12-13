@@ -52,8 +52,8 @@ export class Engine {
         // Framebuffer is where we render the scene before post-processing
         this.framebuffer = new FrameBuffer(this);
 
-        // Set clear color (background color when clearing the screen)
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        // Set clear color (background color when clearing the screen) - pale night sky
+        gl.clearColor(0.2, 0.2, 0.35, 1.0);
         // Enable depth testing (objects closer to camera occlude farther ones)
         gl.enable(gl.DEPTH_TEST);
         // Enable back-face culling to reduce overdraw and z-fighting artifacts
@@ -98,7 +98,8 @@ export class Engine {
 
     update() {
         this.framebuffer.use();
-        this.framebuffer.clear();
+        // Clear with pale night sky background
+        this.framebuffer.clear([0.2, 0.2, 0.35, 1.0]);
     }
 
     /**
