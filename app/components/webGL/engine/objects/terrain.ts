@@ -359,4 +359,45 @@ export class Terrain {
             geometry.indices
         );
     }
+
+    /**
+     * Queries the terrain height at a given X, Z position
+     * Uses the same noise generation logic as terrain generation
+     * @param x - X coordinate in world space
+     * @param z - Z coordinate in world space
+     * @param params - Terrain generation parameters (must match those used to generate the terrain)
+     * @returns Y coordinate (height) at the given position
+     */
+    static getHeightAt(x: number, z: number, params: TerrainParams = {}): number {
+        const {
+            width = Terrain.defaultParams.width,
+            height = Terrain.defaultParams.height,
+            noiseScale = Terrain.defaultParams.noiseScale,
+            noiseAmplitude = Terrain.defaultParams.noiseAmplitude,
+            noiseOctaves = Terrain.defaultParams.noiseOctaves,
+            originX = Terrain.defaultParams.originX,
+            originZ = Terrain.defaultParams.originZ,
+            flatRadius = Terrain.defaultParams.flatRadius,
+            maxDistance = Terrain.defaultParams.maxDistance,
+            amplitudePower = Terrain.defaultParams.amplitudePower
+        } = params;
+
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+
+        // Calculate max distance for amplitude scaling (use diagonal distance to corner if not specified)
+        const calculatedMaxDistance = maxDistance !== null ? maxDistance : Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+
+        // Calculate height with noise and distance-based amplitude (same logic as generatePlane)
+        const distance = Math.sqrt((x - originX) ** 2 + (z - originZ) ** 2);
+        const noiseValue = Terrain.fractalNoise(x * noiseScale, z * noiseScale, noiseOctaves, 0.6);
+        const amplitudeMultiplier = Terrain.distanceAmplitudeMultiplier(distance, {
+            flatRadius,
+            maxDistance: calculatedMaxDistance,
+            power: amplitudePower
+        });
+        const y = noiseValue * noiseAmplitude * amplitudeMultiplier;
+
+        return y;
+    }
 }

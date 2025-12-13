@@ -62,6 +62,12 @@ export default function WebGLCanvas() {
       rockMaterial.setSpecular("/materials/rocks/rocks_Roughness.jpg");
       rockMaterial.textureTiling = 8.0; // Tile texture 8 times for more detail on terrain
 
+      const grassMaterial = new Material(engine);
+      grassMaterial.setDiffuse("/materials/grass/grass_Color.jpg");
+      grassMaterial.setNormal("/materials/grass/grass_NormalGL.jpg");
+      grassMaterial.setSpecular("/materials/grass/grass_Roughness.jpg");
+      grassMaterial.textureTiling = 8.0; // Tile texture 8 times for more detail on terrain
+
       const barkMaterial = new Material(engine);
       barkMaterial.setDiffuse("/materials/bark/bark_Color.jpg");
       barkMaterial.setNormal("/materials/bark/bark_NormalGL.jpg");
@@ -160,7 +166,7 @@ export default function WebGLCanvas() {
         vec3.fromValues(1, 1, 1), // Scale: 1:1 since mesh is already 30x30
         quat.create(),
         groundMesh,
-        rockMaterial
+        grassMaterial
       );
       // Mark as ground plane for special rendering if needed
       (groundPlane as any).isGroundPlane = true;
@@ -310,6 +316,110 @@ export default function WebGLCanvas() {
         console.log(`Added ${numRocks} rocks around fire`);
       } else {
         console.warn("Could not find sphere.obj mesh for rocks");
+      }
+      
+      // Add vertical logs (trees) scattered across the terrain
+      if (logMeshIndex !== -1) {
+        const logMesh = meshes[logMeshIndex];
+        const numTreeLogs = 250; // Number of vertical logs/trees
+        const terrainWidth = 150;
+        const terrainHeight = 150;
+        const terrainCenterX = 0;
+        const terrainCenterZ = terrainOffsetZ; // Account for terrain offset
+        
+        // Terrain parameters (must match those used to generate the terrain)
+        const terrainParams = {
+          width: 150,
+          height: 150,
+          segmentsX: 128,
+          segmentsZ: 128,
+          noiseScale: 0.02,
+          noiseAmplitude: 45.0,
+          noiseOctaves: 3,
+          originX: 0.0,
+          originZ: -terrainOffsetZ,
+          flatRadius: 2.0,
+          maxDistance: null,
+          amplitudePower: 2.5
+        };
+        
+        // Seeded random number generator for deterministic tree placement
+        const treeSeed = 134; // Seed for tree generation
+        let seedState = treeSeed;
+        const seededRandom = () => {
+          seedState = (seedState * 9301 + 49297) % 233280;
+          return seedState / 233280;
+        };
+        
+        // Campfire exclusion radius - no trees within this distance
+        // Fire is at world position (0, -0.25, 0) - use fireCenter coordinates
+        const fireExclusionRadius = 10.0; // Increased radius around campfire
+        const fireCenterX = 0; // Fire X position
+        const fireCenterZ = 0; // Fire Z position (not terrainCenterZ!)
+        
+        let treesPlaced = 0;
+        let attempts = 0;
+        const maxAttempts = numTreeLogs * 10; // Prevent infinite loop
+        
+        while (treesPlaced < numTreeLogs && attempts < maxAttempts) {
+          attempts++;
+          
+          // Random position across terrain using seeded RNG
+          const logX = (seededRandom() - 0.5) * terrainWidth;
+          const logZ = (seededRandom() - 0.5) * terrainHeight + terrainCenterZ;
+          
+          // Check distance from fire - skip if too close
+          // Fire is at world position (0, -0.25, 0), so check distance from (0, 0) in XZ plane
+          const distanceFromFire = Math.sqrt(
+            (logX - fireCenterX) ** 2 + (logZ - fireCenterZ) ** 2
+          );
+          if (distanceFromFire < fireExclusionRadius) {
+            continue; // Skip this position, try again
+          }
+          
+          // Convert world coordinates to terrain local coordinates
+          // Terrain mesh is positioned at (0, -1, terrainOffsetZ) in world space
+          // Terrain local coordinates: X is same (centered at 0), Z needs to account for offset
+          // Since terrain is positioned at Z = terrainOffsetZ, local Z = world Z - terrainOffsetZ
+          const terrainLocalX = logX; // X is the same (terrain centered at world X=0)
+          const terrainLocalZ = logZ - terrainOffsetZ; // Convert world Z to terrain local Z
+          
+          // Query actual terrain height at this position (in terrain local coordinates)
+          const terrainY = Terrain.getHeightAt(terrainLocalX, terrainLocalZ, terrainParams);
+          
+          // Scale: taller logs standing vertically (using seeded RNG)
+          const logBaseScale = 0.012 * 3; // Scaled up by 3
+          const logHeightVariation = 0.008 * 3; // Variation in height (scaled up by 3)
+          const logHeight = logBaseScale + seededRandom() * logHeightVariation;
+          const logWidth = logBaseScale * 0.4; // Narrower width
+          const scaleVec = vec3.fromValues(logWidth, logHeight, logWidth);
+          
+          // Position: bottom of log on terrain (account for terrain Y offset = -1)
+          const position = vec3.fromValues(logX, terrainY - 1.0 + logWidth + 6, logZ);
+          
+          // Random rotation around Y axis (vertical, using seeded RNG)
+          const rotation = quat.create();
+          quat.fromEuler(rotation,
+            0, // No pitch (vertical)
+            seededRandom() * 360, // Random yaw rotation
+            0 // No roll
+          );
+          
+          const treeLogNode = new Node(
+            scene,
+            position,
+            scaleVec,
+            rotation,
+            logMesh,
+            logMaterial
+          );
+          
+          nodes.push(treeLogNode);
+          scene.add(treeLogNode);
+          treesPlaced++;
+        }
+        
+        console.log(`Added ${treesPlaced} vertical logs (trees) across terrain (${attempts} attempts)`);
       }
 
       let lastTime = performance.now();
