@@ -2,23 +2,56 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { MagicElement, MagicElementData, readCollection, addToCollectionBatch } from "@/lib/firebase";
+import Glass from "@/app/components/Glass";
 
 const ELEMENTS: Record<string, MagicElementData> = {
+  poison: {
+    name: "Poison",
+    weaknessIds: ["fire", "acid", "radiant"],
+  },
+  necrotic: {
+    name: "Necrotic",
+    weaknessIds: ["fire", "radiant"],
+  },
+  radiant: {
+    name: "Radiant",
+    weaknessIds: ["necrotic", "thunder"],
+  },
   fire: {
     name: "Fire",
-    weaknessIds: ["water", "earth"],
+    weaknessIds: ["water", "earth", "cold"],
   },
   water: {
     name: "Water",
-    weaknessIds: ["lightning"],
-  },
-  lightning: {
-    name: "Lightning",
-    weaknessIds: ["earth"],
+    weaknessIds: ["plant", "lightning"],
   },
   earth: {
     name: "Earth",
-    weaknessIds: ["fire", "water"],
+    weaknessIds: ["water", "plant", "thunder"],
+  },
+  plant: {
+    name: "Plant",
+    weaknessIds: ["fire", "cold", "poison"],
+  },
+  air: {
+    name: "Air",
+    weaknessIds: ["lightning", "thunder"],
+  },
+  lightning: {
+    name: "Lightning",
+    weaknessIds: ["earth", "water", "air"],
+  },
+  thunder: {
+    name: "Thunder",
+    weaknessIds: ["air", "earth"],
+  },
+  cold: {
+    name: "Cold",
+    weaknessIds: ["fire", "lightning", "acid"],
+  },
+  acid: {
+    name: "Acid",
+    weaknessIds: ["cold", "fire", "water"],
   },
 };
 
@@ -91,14 +124,15 @@ export default function MagicElementsPage() {
         ) : (
           <ul className="space-y-4">
             {elements.map((el) => (
-              <li
-                key={el.id}
-                className="text-white/90 text-lg bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
-              >
-                <strong className="text-white font-semibold">{el.name}</strong>{" "}
-                <span className="text-white/70">
-                  (weak to: {el.weaknessIds.join(", ") || "none"})
-                </span>
+              <li key={el.id}>
+                <Glass className="p-4">
+                  <div className="text-white/90 text-lg">
+                    <strong className="text-white font-semibold">{el.name}</strong>{" "}
+                    <span className="text-white/70">
+                      (weak to: {el.weaknessIds.join(", ") || "none"})
+                    </span>
+                  </div>
+                </Glass>
               </li>
             ))}
           </ul>
