@@ -42,7 +42,7 @@ export default function WebGLCanvas() {
       const quadProgram = await Shader.create(
         gl,
         "/shaders/quad.vert",
-        "/shaders/quad.frag"
+        "/shaders/quantizeBucket.frag"
       );
 
       // Load all available meshes from public/models so we can pick randomly

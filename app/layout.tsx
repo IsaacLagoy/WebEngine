@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Kanit } from "next/font/google";
 import "./globals.css";
 import WebGLCanvas from "./components/webGL/WebGLCanvas";
 import IdleWrapper from "./components/IdleWrapper";
+import Header from "./components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,7 +46,8 @@ export default function RootLayout({
         <div className="fixed inset-0 z-0">
           <WebGLCanvas />
         </div>
-        <IdleWrapper idleTimeoutSeconds={3}>
+        <IdleWrapper idleTimeoutSeconds={30}>
+          <Header />
           <div className="relative z-10">{children}</div>
         </IdleWrapper>
       </body>
