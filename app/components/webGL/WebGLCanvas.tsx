@@ -264,6 +264,77 @@ export default function WebGLCanvas() {
         }
         
         console.log(`Added ${numLogs} logs in tripod formation`);
+        
+        // Add logs evenly spaced around the campfire at radius 7
+        const benchRadius = 7.5;
+        const numBenchLogs = 3; // Number of logs around the fire
+        const benchLogBaseScale = 0.01 / 2; // Same scale as tripod logs
+        
+        // Terrain params for height calculation
+        const benchTerrainParams = {
+          width: 150,
+          height: 150,
+          segmentsX: 128,
+          segmentsZ: 128,
+          noiseScale: 0.02,
+          noiseAmplitude: 45.0,
+          noiseOctaves: 3,
+          originX: 0.0,
+          originZ: -terrainOffsetZ,
+          flatRadius: 2.0,
+          maxDistance: null,
+          amplitudePower: 2.5
+        };
+        
+        for (let i = 0; i < numBenchLogs; i++) {
+          // Calculate angle for even spacing around circle
+          const angle = (i / numBenchLogs) * 2 * Math.PI + 80 * Math.PI / 180;
+          
+          // Position: on circle at benchRadius distance from fire center
+          const benchX = fireCenter[0] + Math.cos(angle) * benchRadius;
+          const benchZ = fireCenter[2] + Math.sin(angle) * benchRadius;
+          
+          // Get terrain height at this position
+          const terrainLocalX = benchX;
+          const terrainLocalZ = benchZ - terrainOffsetZ;
+          const terrainY = Terrain.getHeightAt(
+            terrainLocalX,
+            terrainLocalZ,
+            benchTerrainParams
+          );
+          
+          // Position log on terrain
+          const benchPosition = vec3.fromValues(
+            benchX,
+            terrainY - 0.5 + benchLogBaseScale,
+            benchZ
+          );
+          
+          // Scale: horizontal log (lying down)
+          const benchScaleX = benchLogBaseScale * 2;
+          const benchScaleY = benchLogBaseScale * 4;
+          const benchScaleZ = benchLogBaseScale * 2;
+          const benchScaleVec = vec3.fromValues(benchScaleX, benchScaleY, benchScaleZ);
+          
+          // Rotation: horizontal (lying down), perpendicular to radial direction (pointing toward fire)
+          const benchRotation = quat.create();
+          // Rotate 90 degrees pitch to lay flat, then rotate around Y to align with tangent (reversed)
+          quat.fromEuler(benchRotation, 90, -(angle * 180) / Math.PI, 0);
+          
+          const benchLogNode = new Node(
+            scene,
+            benchPosition,
+            benchScaleVec,
+            benchRotation,
+            logMesh,
+            logMaterial
+          );
+          
+          nodes.push(benchLogNode);
+          scene.add(benchLogNode);
+        }
+        
+        console.log(`Added ${numBenchLogs} bench logs evenly spaced around fire at radius ${benchRadius}`);
       } else {
         console.warn("Could not find log.obj mesh");
       }
