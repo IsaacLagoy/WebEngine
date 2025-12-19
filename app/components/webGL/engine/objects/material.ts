@@ -6,9 +6,16 @@ import { Engine } from "./engine";
  * 
  * @param gl - WebGL 2.0 context
  * @param url - Path to the image file
+ * @param options - Optional texture configuration
+ * @param options.wrapMode - Texture wrap mode: 'repeat' (default) for tiling, 'clamp' for non-tiling textures like sprites
+ * @param options.generateMipmaps - Whether to generate mipmaps (default: true). Set to false for transparent textures to prevent white edge artifacts
  * @returns The created texture
  */
-export function loadTexture(gl: WebGL2RenderingContext, url: string): WebGLTexture {
+export function loadTexture(
+    gl: WebGL2RenderingContext, 
+    url: string,
+    options?: { wrapMode?: 'repeat' | 'clamp'; generateMipmaps?: boolean }
+): WebGLTexture {
     const texture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -16,18 +23,26 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string): WebGLTextu
     const pixel = new Uint8Array([255, 255, 255, 255]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 
+    const wrapMode = options?.wrapMode === 'clamp' ? gl.CLAMP_TO_EDGE : gl.REPEAT;
+    const generateMipmaps = options?.generateMipmaps !== false; // Default to true
+
     const image = new Image();
     image.src = url;
     image.onload = () => {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
-        gl.generateMipmap(gl.TEXTURE_2D); // optional
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        if (generateMipmaps) {
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        } else {
+            // For transparent textures without mipmaps, use LINEAR to avoid white edge artifacts
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        // Set wrap mode to REPEAT for tiling
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        // Set wrap mode (CLAMP_TO_EDGE prevents edge bleeding for non-tiling textures)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapMode);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapMode);
     };
 
     return texture;
@@ -70,12 +85,12 @@ export class Material {
         return this.engine.gl;
     }
 
-    setDiffuse(url: string) {
-        this.diffuseMap = loadTexture(this.gl(), url);
+    setDiffuse(url: string, options?: { wrapMode?: 'repeat' | 'clamp'; generateMipmaps?: boolean }) {
+        this.diffuseMap = loadTexture(this.gl(), url, options);
     }
 
-    setNormal(url: string) {
-        this.normalMap = loadTexture(this.gl(), url);
+    setNormal(url: string, options?: { wrapMode?: 'repeat' | 'clamp'; generateMipmaps?: boolean }) {
+        this.normalMap = loadTexture(this.gl(), url, options);
     }
 
     setSpecular(url: string) {

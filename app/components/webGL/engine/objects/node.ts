@@ -18,6 +18,9 @@ export class Node {
     // kinematics
     velocity: vec3;
     angularVelocity: vec3;
+    
+    // Flag to skip updates for static objects (like leaves)
+    skipUpdate: boolean = false;
 
     constructor(scene: Scene, position: vec3, scale: vec3, rotation: quat, mesh: Mesh, material?: Material) {
         this.scene = scene;

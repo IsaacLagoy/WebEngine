@@ -125,10 +125,11 @@ void main() {
     vec2 tiledTexCoord = vTexCoord * uTextureTiling;
     
     // --- Albedo (PBR standard: texture * materialColor) ---
-    vec3 albedoTex = texture2D(uDiffuseMap, tiledTexCoord).rgb;
+    vec4 albedoTex = texture2D(uDiffuseMap, tiledTexCoord);
     // If texture is white (default), use material color directly
     // Otherwise, tint the texture with material color (PBR standard)
-    vec3 albedo = albedoTex * uMaterialColor;
+    vec3 albedo = albedoTex.rgb * uMaterialColor;
+    float alpha = albedoTex.a;  // Get alpha from texture
 
     // --- Normal ---
     // Sample normal map - if it's white (default), use vertex normal (flat)
@@ -245,6 +246,12 @@ void main() {
     
     // Gamma correction
     color = pow(color, vec3(1.0 / 2.2));
+
+    // Alpha testing: if alpha < 1.0, treat as fully transparent (discard)
+    // This creates hard edges and prevents white outline artifacts from blending
+    if (alpha < 1.0) {
+        discard;
+    }
 
     gl_FragColor = vec4(color, 1.0);
 }

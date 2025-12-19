@@ -246,6 +246,10 @@ export class InstanceGroup {
         // Setup instance attributes (must be done while VAO is bound)
         this.setupInstanceAttributes(program);
         
+        // Enable alpha blending for transparency
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        
         // Use instanced rendering (required - no fallback)
         gl.drawElementsInstanced(
             gl.TRIANGLES,
@@ -254,6 +258,9 @@ export class InstanceGroup {
             0,
             this.nodes.length
         );
+        
+        // Disable blending after drawing
+        gl.disable(gl.BLEND);
         
         // Cleanup instance attributes
         this.disableInstanceAttributes(program);

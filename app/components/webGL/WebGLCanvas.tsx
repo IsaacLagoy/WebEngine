@@ -14,6 +14,7 @@ import { PointLight } from "./engine/objects/pointLight";
 import { Billboard } from "./engine/objects/billboard";
 import { FireBillboard } from "./engine/objects/fireBillboard";
 import { Skybox } from "./engine/objects/skybox";
+import { Tree, TreeSpawnConfig } from "./engine/objects/tree";
 
 export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,6 +49,7 @@ export default function WebGLCanvas() {
       // Load all available meshes from public/models so we can pick randomly
       const modelPaths = [
         "/models/log.obj",
+        "/models/tree.obj",
         "/models/sphere.obj",
         "/models/cube.obj",
       ];
@@ -319,13 +321,9 @@ export default function WebGLCanvas() {
       }
       
       // Add vertical logs (trees) scattered across the terrain
-      if (logMeshIndex !== -1) {
-        const logMesh = meshes[logMeshIndex];
-        const numTreeLogs = 250; // Number of vertical logs/trees
-        const terrainWidth = 150;
-        const terrainHeight = 150;
-        const terrainCenterX = 0;
-        const terrainCenterZ = terrainOffsetZ; // Account for terrain offset
+      const treeMeshIndex = modelPaths.findIndex(path => path === "/models/tree.obj");
+      if (treeMeshIndex !== -1) {
+        const treeMesh = meshes[treeMeshIndex];
         
         // Terrain parameters (must match those used to generate the terrain)
         const terrainParams = {
@@ -343,84 +341,34 @@ export default function WebGLCanvas() {
           amplitudePower: 2.5
         };
         
-        // Seeded random number generator for deterministic tree placement
-        const treeSeed = 134; // Seed for tree generation
-        let seedState = treeSeed;
-        const seededRandom = () => {
-          seedState = (seedState * 9301 + 49297) % 233280;
-          return seedState / 233280;
+        // Tree spawn configuration
+        const treeConfig: TreeSpawnConfig = {
+          numTrees: 150,
+          treeSeed: 150,
+          sizeSeed: 200,
+          fireExclusionRadius: 7.0,
+          fireCenter: vec3.fromValues(0, -0.25, 0), // Fire is at world position (0, -0.25, 0)
+          cameraExclusionRadius: 6.0,
+          terrainOffsetZ: terrainOffsetZ,
+          terrainParams: terrainParams,
+          logBaseScale: 0.012 * 3 * 2, // Scaled up by 3, then doubled
+          logHeightVariation: 0.008 * 3 * 2, // Variation in height (scaled up by 3, then doubled)
+          leafSpawnChance: 0.05, // 5% chance of spawning a leaf at each vertex
         };
         
-        // Campfire exclusion radius - no trees within this distance
-        // Fire is at world position (0, -0.25, 0) - use fireCenter coordinates
-        const fireExclusionRadius = 10.0; // Increased radius around campfire
-        const fireCenterX = 0; // Fire X position
-        const fireCenterZ = 0; // Fire Z position (not terrainCenterZ!)
+        // Spawn trees using Tree class
+        const { treeNodes, leaves } = await Tree.spawnTrees(
+          engine,
+          scene,
+          treeMesh,
+          barkMaterial,
+          treeConfig
+        );
         
-        let treesPlaced = 0;
-        let attempts = 0;
-        const maxAttempts = numTreeLogs * 10; // Prevent infinite loop
-        
-        while (treesPlaced < numTreeLogs && attempts < maxAttempts) {
-          attempts++;
-          
-          // Random position across terrain using seeded RNG
-          const logX = (seededRandom() - 0.5) * terrainWidth;
-          const logZ = (seededRandom() - 0.5) * terrainHeight + terrainCenterZ;
-          
-          // Check distance from fire - skip if too close
-          // Fire is at world position (0, -0.25, 0), so check distance from (0, 0) in XZ plane
-          const distanceFromFire = Math.sqrt(
-            (logX - fireCenterX) ** 2 + (logZ - fireCenterZ) ** 2
-          );
-          if (distanceFromFire < fireExclusionRadius) {
-            continue; // Skip this position, try again
-          }
-          
-          // Convert world coordinates to terrain local coordinates
-          // Terrain mesh is positioned at (0, -1, terrainOffsetZ) in world space
-          // Terrain local coordinates: X is same (centered at 0), Z needs to account for offset
-          // Since terrain is positioned at Z = terrainOffsetZ, local Z = world Z - terrainOffsetZ
-          const terrainLocalX = logX; // X is the same (terrain centered at world X=0)
-          const terrainLocalZ = logZ - terrainOffsetZ; // Convert world Z to terrain local Z
-          
-          // Query actual terrain height at this position (in terrain local coordinates)
-          const terrainY = Terrain.getHeightAt(terrainLocalX, terrainLocalZ, terrainParams);
-          
-          // Scale: taller logs standing vertically (using seeded RNG)
-          const logBaseScale = 0.012 * 3; // Scaled up by 3
-          const logHeightVariation = 0.008 * 3; // Variation in height (scaled up by 3)
-          const logHeight = logBaseScale + seededRandom() * logHeightVariation;
-          const logWidth = logBaseScale * 0.4; // Narrower width
-          const scaleVec = vec3.fromValues(logWidth, logHeight, logWidth);
-          
-          // Position: bottom of log on terrain (account for terrain Y offset = -1)
-          const position = vec3.fromValues(logX, terrainY - 1.0 + logWidth + 6, logZ);
-          
-          // Random rotation around Y axis (vertical, using seeded RNG)
-          const rotation = quat.create();
-          quat.fromEuler(rotation,
-            0, // No pitch (vertical)
-            seededRandom() * 360, // Random yaw rotation
-            0 // No roll
-          );
-          
-          const treeLogNode = new Node(
-            scene,
-            position,
-            scaleVec,
-            rotation,
-            logMesh,
-            logMaterial
-          );
-          
-          nodes.push(treeLogNode);
-          scene.add(treeLogNode);
-          treesPlaced++;
-        }
-        
-        console.log(`Added ${treesPlaced} vertical logs (trees) across terrain (${attempts} attempts)`);
+        // Add tree nodes to the nodes array
+        nodes.push(...treeNodes);
       }
+
 
       let lastTime = performance.now();
       const startTime = performance.now();

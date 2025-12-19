@@ -206,5 +206,34 @@ export class Mesh {
         gl.bindVertexArray(null);
     }
 
+    /**
+     * Gets all vertex positions from the mesh
+     * @returns Array of vertex positions as [x, y, z] tuples
+     */
+    getVertices(): [number, number, number][] {
+        const vertices: [number, number, number][] = [];
+        const verts = this.obj.vertices;
+        for (let i = 0; i < verts.length; i += 3) {
+            vertices.push([verts[i], verts[i + 1], verts[i + 2]]);
+        }
+        return vertices;
+    }
+
+    /**
+     * Gets the raw vertex array (flat array: [x1, y1, z1, x2, y2, z2, ...])
+     * @returns The raw vertex array
+     */
+    getVerticesFlat(): number[] {
+        return [...this.obj.vertices];
+    }
+
+    /**
+     * Gets the number of vertices in the mesh
+     * @returns Number of vertices
+     */
+    getVertexCount(): number {
+        return this.obj.vertices.length / 3;
+    }
+
 }
 

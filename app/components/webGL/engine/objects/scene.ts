@@ -286,7 +286,10 @@ export class Scene {
 
     update(dt: number) {
         for (const node of this.nodes) {
-            node.update(dt);
+            // Skip update for static nodes (like leaves)
+            if (!node.skipUpdate) {
+                node.update(dt);
+            }
         }
 
         // Update fire billboard animations
