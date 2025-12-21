@@ -1,0 +1,25 @@
+/**
+ * Main entry point for webgl-canvas package
+ * 
+ * @example
+ * ```tsx
+ * import { WebGLCanvas, createGlueGunScene } from '@your-org/webgl-canvas';
+ * 
+ * function App() {
+ *   return <WebGLCanvas sceneFactory={createGlueGunScene} />;
+ * }
+ * ```
+ */
+
+// Export main component
+export { default as WebGLCanvas } from './WebGLCanvas';
+
+// Export scene factories
+export * from './scenes';
+
+// Export engine types (optional - for advanced users)
+export * from './engine';
+
+// Export types
+export type { RenderFunction } from './scenes/campfireScene';
+

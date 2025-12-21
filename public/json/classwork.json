@@ -1,0 +1,63 @@
+[
+    {
+        "name": "Calculus 3",
+        "subject": "MATH",
+        "course": 251,
+        "description": "Engineering Mathematics III. Vector algebra, calculus of functions of several variables, partial derivatives, directional derivatives, gradient, multiple integration, line and surface integrals, Green's and Stokes' theorems."
+    },
+    {
+        "name": "Linear Algebra",
+        "subject": "MATH",
+        "course": 304,
+        "description": "Introductory course in linear algebra covering abstract ideas of vector space and linear transformation as well as models and applications of these concepts, such as systems of linear equations, matrices and determinants;"
+    },
+    {
+        "name": "Foundations of Mathematics",
+        "subject": "MATH",
+        "course": 300,
+        "description": "Foundations of mathematics including logic, set theory, combinatorics, and number theory."
+    },
+    {
+        "name": "Differential Equations",
+        "subject": "MATH",
+        "course": 308,
+        "description": "Ordinary differential equations, solutions in series, solutions using Laplace transforms, systems of differential equations."
+    },
+    {
+        "name": "Analysis on the Real Line",
+        "subject": "MATH",
+        "course": 409,
+        "description": "Cardinality; properties of the real numbers; the completeness axiom; sequences and series; continuity and uniform continuity; differentiation; the Riemann integral."
+    },
+
+    {
+        "name": "Program Design and Concepts",
+        "subject": "CSCE",
+        "course": 120,
+        "description": "Extension of prior programming knowledge and creation of computer programs that solve problems; use of the C++ language; application of computational thinking to enhance problem solving; analysis of, design of and implementation of computer programs; use of basic and aggregate data types to develop functional and object oriented solutions; development of classes that use dynamic memory and avoid memory leaks; study of error handling strategies to develop more secure and robust programs."
+    },
+    {
+        "name": "Data Structures and Algorithms",
+        "subject": "CSCE",
+        "course": 221,
+        "description": "Specification and implementation of basic abstract data types and their associated algorithms including stacks, queues, lists, sorting and selection, searching, graphs, and hashing; performance tradeoffs of different implementations and asymptotic analysis of running time and memory usage; includes the execution of student programs written in C++."
+    },
+    {
+        "name": "Discrete Structures for Computing",
+        "subject": "CSCE",
+        "course": 222,
+        "description": "Mathematical foundations from discrete mathematics for analyzing computer algorithms, for both correctness and performance; introduction to models of computation, including finite state machines and Turing machines."
+    },
+    {
+        "name": "Computer Organization",
+        "subject": "CSCE",
+        "course": 312,
+        "description": "Computer systems from programmer's perspective including simple logic design, data representation and processor architecture, programming of processors, memory, control flow, input/output, and performance measurements; hands-on lab assignments."
+    },
+    {
+        "name": "Programming Languages",
+        "subject": "CSCE",
+        "course": 314,
+        "description": "Exploration of the design space of programming languages via an in-depth study of two programming languages, one functional and one object-oriented; focuses on idiomatic uses of each language and on features characteristic for each language."
+    }
+]

@@ -1,0 +1,55 @@
+{
+  "name": "@your-org/webgl-canvas",
+  "version": "1.0.0",
+  "description": "WebGL 2.0 canvas component with scene factory system",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./scenes": {
+      "types": "./dist/scenes/index.d.ts",
+      "import": "./dist/scenes/index.mjs",
+      "require": "./dist/scenes/index.js"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "import": "./dist/engine/index.mjs",
+      "require": "./dist/engine/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "gl-matrix": "^3.0.0"
+  },
+  "dependencies": {
+    "webgl-obj-loader": "^2.0.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "webgl",
+    "canvas",
+    "react",
+    "3d",
+    "rendering"
+  ],
+  "license": "MIT"
+}
+

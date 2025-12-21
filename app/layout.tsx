@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Kanit } from "next/font/google";
 import "./globals.css";
-import WebGLCanvas from "./components/webGL/WebGLCanvas";
+import GlueScene from "./components/GlueScene";
+import CampScene from "./components/CampScene";
 import IdleWrapper from "./components/IdleWrapper";
 import Header from "./components/Header";
 
@@ -44,7 +45,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}`}>
         <div className="fixed inset-0 z-0">
-          <WebGLCanvas />
+          <CampScene />
         </div>
         <IdleWrapper idleTimeoutSeconds={30}>
           <Header />
