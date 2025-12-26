@@ -1,6 +1,7 @@
 import * as OBJ from "webgl-obj-loader";
 import { Engine } from "./engine";
 import { computeTangents } from "../../math/tangents";
+import { parseObjAsync, type ParseResult } from "./obj-parser";
 
 /**
  * Mesh class - represents a 3D model loaded from an OBJ file
@@ -43,19 +44,46 @@ export class Mesh {
         this.obj = obj;
 
         // Compute tangents for normal mapping (needed for bump mapping effects)
-        const tangents = computeTangents(obj);
+        // This can be slow for large meshes, but must be synchronous here
+        // Consider moving to async if this becomes a bottleneck
+        let tangents: number[];
+        try {
+            tangents = computeTangents(obj);
+        } catch (error) {
+            console.warn("Failed to compute tangents, using zero tangents:", error);
+            // Fallback: create zero tangents
+            const numVerts = obj.vertices.length / 3;
+            tangents = new Array(numVerts * 3).fill(0);
+        }
         
         // Create VAO - this will store all our vertex attribute configurations
         const gl = this.gl();
         this.vao = gl.createVertexArray();
+        if (!this.vao) {
+            throw new Error("Failed to create VAO - WebGL 2.0 may not be fully supported");
+        }
         gl.bindVertexArray(this.vao);
 
         // Create and upload all vertex data buffers (VBOs)
         // ARRAY_BUFFER is for vertex attributes (positions, normals, etc.)
         this.tangentBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(tangents));
         this.vertexBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(obj.vertices));
+        
+        // Validate normals exist
+        if (!obj.vertexNormals || obj.vertexNormals.length === 0) {
+            console.warn("OBJ file has no vertex normals, using zero normals");
+            const numVerts = obj.vertices.length / 3;
+            obj.vertexNormals = new Array(numVerts * 3).fill(0);
+        }
         this.normalBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(obj.vertexNormals));
-        this.texcoordBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(obj.textures));
+        
+        // Texture coordinates are optional
+        if (obj.textures && obj.textures.length > 0) {
+            this.texcoordBuffer = this.createBuffer(gl.ARRAY_BUFFER, new Float32Array(obj.textures));
+        } else {
+            console.warn("OBJ file has no texture coordinates");
+            this.texcoordBuffer = null;
+        }
         
         // ELEMENT_ARRAY_BUFFER is for indices (defines which vertices form triangles)
         // Use Uint32Array if we have more than 65535 vertices (Uint16 limit)
@@ -82,11 +110,72 @@ export class Mesh {
         gl.bindVertexArray(null);
     }
 
+    /**
+     * Yields control to the browser to prevent blocking the main thread
+     * Uses requestIdleCallback if available, otherwise setTimeout
+     */
+    private static async yieldToBrowser(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(() => resolve(), { timeout: 0 });
+            } else {
+                // Fallback for browsers without requestIdleCallback
+                setTimeout(() => resolve(), 0);
+            }
+        });
+    }
+
     static async fromObj(engine: Engine, url: string) {
-        const response = await fetch(url);
-        const text = await response.text();
-        const obj = new OBJ.Mesh(text);
-        return new Mesh(engine, obj);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch OBJ file: ${response.status} ${response.statusText}`);
+            }
+            const text = await response.text();
+            
+            // Log file size for debugging
+            const fileSizeKB = (text.length / 1024).toFixed(2);
+            console.log(`Loading OBJ file: ${url} (${fileSizeKB} KB)`);
+            
+            // Parse OBJ file asynchronously (yields control to prevent blocking)
+            // Note: The actual parsing is still synchronous, but we yield before/after
+            // to allow the browser to handle other tasks
+            let parsedData: ParseResult;
+            try {
+                parsedData = await parseObjAsync(text);
+            } catch (parseError) {
+                console.error(`Failed to parse OBJ file ${url}:`, parseError);
+                throw new Error(`OBJ parsing failed: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+            }
+            
+            // Validate parsed data
+            if (!parsedData.vertices || parsedData.vertices.length === 0) {
+                throw new Error(`OBJ file ${url} has no vertices`);
+            }
+            if (!parsedData.indices || parsedData.indices.length === 0) {
+                throw new Error(`OBJ file ${url} has no indices`);
+            }
+            
+            const vertexCount = parsedData.vertices.length / 3;
+            const faceCount = parsedData.indices.length / 3;
+            console.log(`Parsed OBJ: ${vertexCount} vertices, ${faceCount} faces`);
+            
+            // Create OBJ.Mesh-like object from parsed data
+            const obj = {
+                vertices: parsedData.vertices,
+                vertexNormals: parsedData.vertexNormals || [],
+                textures: parsedData.textures || [],
+                indices: parsedData.indices
+            } as OBJ.Mesh;
+            
+            // Yield before creating the mesh (which does tangent computation)
+            await Mesh.yieldToBrowser();
+            
+            return new Mesh(engine, obj);
+        } catch (error) {
+            console.error(`Error loading mesh from ${url}:`, error);
+            throw error;
+        }
     }
 
     /**

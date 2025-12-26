@@ -18,6 +18,14 @@ export class Engine {
     width: number = 0;
     height: number = 0;
     aspectRatio: number = 1.0;  // Window aspect ratio (width / height)
+    
+    // Resolution scale for performance optimization (0.0 to 1.0)
+    // Renders at lower resolution and scales up to fit screen
+    resolutionScale: number = 1.0;
+    
+    // Cache last known CSS dimensions to prevent unnecessary resizes
+    private lastCssWidth: number = 0;
+    private lastCssHeight: number = 0;
 
     framebuffer: FrameBuffer;
     fullscreenQuad: Quad;
@@ -25,12 +33,12 @@ export class Engine {
 
     private uniformCache = new Map<string, WebGLUniformLocation | null>();
 
-    constructor(gl: WebGL2RenderingContext, quadShader: Shader, fullscreenQuad: Quad) {
+    constructor(gl: WebGL2RenderingContext, quadShader: Shader, fullscreenQuad: Quad, resolutionScale: number = 1.0) {
         this.gl = gl;
-        this.updateAspectRatio();
 
         this.quadShader = quadShader;
         this.fullscreenQuad = fullscreenQuad;
+        this.resolutionScale = Math.max(0.1, Math.min(1.0, resolutionScale)); // Clamp between 0.1 and 1.0
         
         // Get initial canvas size
         // When canvas is sized via CSS, width/height may be 0 initially
@@ -40,13 +48,18 @@ export class Engine {
         const cssWidth = canvas.clientWidth || 300;
         const cssHeight = canvas.clientHeight || 150;
         
-        // Calculate initial size in device pixels
-        this.width = Math.round(cssWidth * dpr);
-        this.height = Math.round(cssHeight * dpr);
+        // Calculate initial size in device pixels, scaled by resolution scale
+        const displayWidth = Math.round(cssWidth * dpr);
+        const displayHeight = Math.round(cssHeight * dpr);
+        this.width = Math.round(displayWidth * this.resolutionScale);
+        this.height = Math.round(displayHeight * this.resolutionScale);
         
         // Set canvas internal resolution to match
         canvas.width = this.width;
         canvas.height = this.height;
+        
+        // Update aspect ratio AFTER setting dimensions
+        this.updateAspectRatio();
         
         // Create framebuffer AFTER setting dimensions (needs correct size)
         // Framebuffer is where we render the scene before post-processing
@@ -64,11 +77,19 @@ export class Engine {
     /**
      * Factory method to create an Engine instance
      * Loads shaders and initializes all systems
+     * @param resolutionScale - Resolution scale factor (0.0 to 1.0) for performance optimization
+     *                          If not provided, will try to read from canvas.__resolutionScale
      */
-    static async create(gl: WebGL2RenderingContext): Promise<Engine> {
+    static async create(gl: WebGL2RenderingContext, resolutionScale?: number): Promise<Engine> {
+        // If resolutionScale not provided, try to read from canvas
+        if (resolutionScale === undefined) {
+            const canvas = gl.canvas as HTMLCanvasElement;
+            resolutionScale = (canvas as any).__resolutionScale ?? 1.0;
+        }
+        
         const quadShader = await Shader.create(gl, "/shaders/quad.vert", "/shaders/quad.frag");
         const fullscreenQuad = new Quad(gl);
-        const engine = new Engine(gl, quadShader, fullscreenQuad);
+        const engine = new Engine(gl, quadShader, fullscreenQuad, resolutionScale);
         return engine;
     }
 
@@ -123,11 +144,14 @@ export class Engine {
     present(texture: WebGLTexture, program: Shader, beforeDraw?: (gl: WebGL2RenderingContext, program: WebGLProgram) => void) {
         const gl = this.gl;
         const canvas = gl.canvas as HTMLCanvasElement;
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
+        // Use CSS display size for viewport (not internal render resolution)
+        // This ensures the texture is stretched to fill the display
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = Math.round(canvas.clientWidth * dpr);
+        const displayHeight = Math.round(canvas.clientHeight * dpr);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, canvasWidth, canvasHeight);
+        gl.viewport(0, 0, displayWidth, displayHeight);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.disable(gl.DEPTH_TEST);
 
@@ -179,6 +203,8 @@ export class Engine {
      * Uses ResizeObserver with devicePixelContentBoxSize for best accuracy (Chrome/Edge)
      * Falls back to getBoundingClientRect * devicePixelRatio for other browsers
      * Based on: https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+     * 
+     * Caches CSS dimensions to prevent unnecessary resizes during scroll/transforms
      */
     resizeCanvas() {
         const canvas = this.gl.canvas as HTMLCanvasElement;
@@ -186,6 +212,17 @@ export class Engine {
         // Lookup the size the browser is displaying the canvas in CSS pixels
         const dpr = window.devicePixelRatio || 1;
         const { width: cssWidth, height: cssHeight } = canvas.getBoundingClientRect();
+        
+        // Only proceed if CSS dimensions actually changed (prevents resize on scroll/transform)
+        if (cssWidth === this.lastCssWidth && cssHeight === this.lastCssHeight) {
+            // Dimensions haven't changed, just ensure viewport is correct
+            this.gl.viewport(0, 0, this.width, this.height);
+            return;
+        }
+        
+        // Update cached CSS dimensions
+        this.lastCssWidth = cssWidth;
+        this.lastCssHeight = cssHeight;
         
         // Calculate display size in device pixels
         const displayWidth = Math.round(cssWidth * dpr);
@@ -196,14 +233,20 @@ export class Engine {
             return;
         }
 
-        // Check if the canvas is not the same size
-        const needsResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+        // Calculate render resolution (scaled down for performance)
+        const renderWidth = Math.round(displayWidth * this.resolutionScale);
+        const renderHeight = Math.round(displayHeight * this.resolutionScale);
+
+        // Check if the canvas internal resolution needs to change
+        // Note: canvas CSS size stays at display size, but internal resolution is scaled
+        const needsResize = canvas.width !== renderWidth || canvas.height !== renderHeight;
         if (needsResize) {
-            // Make the canvas the same size
-            canvas.width = displayWidth;
-            canvas.height = displayHeight;
-            this.width = displayWidth;
-            this.height = displayHeight;
+            // Set canvas internal resolution to scaled size
+            // CSS will automatically scale it up to display size
+            canvas.width = renderWidth;
+            canvas.height = renderHeight;
+            this.width = renderWidth;
+            this.height = renderHeight;
 
             // Update aspect ratio
             this.updateAspectRatio();
@@ -218,14 +261,16 @@ export class Engine {
                 this.framebuffer.resize();
             }
         } else {
-            // Even if dimensions haven't changed, ensure camera aspect ratio is correct
+            // Even if dimensions haven't changed, ensure aspect ratio and camera are correct
             // This handles the case where engine was initialized with wrong dimensions
             const currentAspectRatio = this.height > 0 ? this.width / this.height : 1.0;
             if (Math.abs(this.aspectRatio - currentAspectRatio) > 0.001) {
                 this.aspectRatio = currentAspectRatio;
-                if (this.scene && this.scene.camera) {
-                    this.scene.camera.updateAspectRatio();
-                }
+            }
+            // Always update camera aspect ratio when resizeCanvas is called, even if size didn't change
+            // This ensures camera is correct on initial load
+            if (this.scene && this.scene.camera) {
+                this.scene.camera.updateAspectRatio();
             }
         }
         
@@ -240,6 +285,16 @@ export class Engine {
             this.uniformCache.set(key, this.gl.getUniformLocation(program, name));
         }
         return this.uniformCache.get(key)!;
+    }
+
+    /**
+     * Set the resolution scale factor for performance optimization
+     * @param scale - Resolution scale (0.1 to 1.0). Lower values improve performance but reduce quality.
+     */
+    setResolutionScale(scale: number) {
+        this.resolutionScale = Math.max(0.1, Math.min(1.0, scale));
+        // Trigger a resize to apply the new scale
+        this.resizeCanvas();
     }
 
     /**

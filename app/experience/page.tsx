@@ -182,7 +182,7 @@ export default function ExperiencePage() {
                             }
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
                       <div className="p-4 md:p-6 flex-1 flex flex-col">
                         <h3 className="text-white font-semibold text-base md:text-lg group-hover:text-white transition-colors">

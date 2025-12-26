@@ -1,0 +1,1 @@
+{"version":3,"file":"quad.d.ts","sourceRoot":"","sources":["../../../engine/core/quad.ts"],"names":[],"mappings":"AACA;;;;;;;GAOG;AACH,qBAAa,IAAI;IACb,EAAE,EAAE,sBAAsB,CAAC;IAC3B,GAAG,EAAE,sBAAsB,GAAG,IAAI,CAAC;IACnC,YAAY,EAAE,WAAW,GAAG,IAAI,CAAC;IACjC,cAAc,EAAE,WAAW,GAAG,IAAI,CAAC;gBAEvB,EAAE,EAAE,sBAAsB;IA8CtC;;;;OAIG;IACH,IAAI,CAAC,OAAO,EAAE,YAAY;CA4B7B"}

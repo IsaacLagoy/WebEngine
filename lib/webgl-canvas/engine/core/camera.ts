@@ -16,63 +16,10 @@ export class Camera {
     // Camera control settings
     rotationSpeed: number = 1.5; // radians per second
     moveSpeed: number = 5.0; // units per second
-    
-    // Keyboard state
-    private keysPressed: Set<string> = new Set();
-    
-    // Event handler references for cleanup
-    private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
-    private handleKeyUp: ((e: KeyboardEvent) => void) | null = null;
 
     constructor(engine: Engine) {
         this.engine = engine;
-        this.setupKeyboardListeners();
         this.updateMatrices();
-    }
-
-    private setupKeyboardListeners() {
-        // Store handlers as instance properties so they can be removed later
-        this.handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
-                e.key === "ArrowLeft" || e.key === "ArrowRight" ||
-                e.key === "w" || e.key === "W" ||
-                e.key === "a" || e.key === "A" ||
-                e.key === "s" || e.key === "S" ||
-                e.key === "d" || e.key === "D") {
-                e.preventDefault();
-                this.keysPressed.add(e.key.toLowerCase());
-            }
-        };
-
-        this.handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === "ArrowUp" || e.key === "ArrowDown" || 
-                e.key === "ArrowLeft" || e.key === "ArrowRight" ||
-                e.key === "w" || e.key === "W" ||
-                e.key === "a" || e.key === "A" ||
-                e.key === "s" || e.key === "S" ||
-                e.key === "d" || e.key === "D") {
-                this.keysPressed.delete(e.key.toLowerCase());
-            }
-        };
-
-        window.addEventListener("keydown", this.handleKeyDown);
-        window.addEventListener("keyup", this.handleKeyUp);
-    }
-
-    /**
-     * Cleanup method to remove event listeners and prevent memory leaks
-     * Should be called when the Camera instance is destroyed or component unmounts
-     */
-    destroy() {
-        if (this.handleKeyDown) {
-            window.removeEventListener("keydown", this.handleKeyDown);
-            this.handleKeyDown = null;
-        }
-        if (this.handleKeyUp) {
-            window.removeEventListener("keyup", this.handleKeyUp);
-            this.handleKeyUp = null;
-        }
-        this.keysPressed.clear();
     }
 
     updateAspectRatio() {
@@ -102,8 +49,15 @@ export class Camera {
         shader.setUniformMatrix("uProjectionMatrix", Array.from(this.projectionMatrix) as Float32List);
     }
 
-    update(dt: number) {
-        if (this.keysPressed.size === 0) return;
+    /**
+     * Update camera based on input state
+     * @param dt - Delta time in seconds
+     * @param inputState - Input state object with keys and mouse delta
+     */
+    update(dt: number, inputState?: { keys: Set<string>, mouseDeltaX: number, mouseDeltaY: number }) {
+        if (!inputState || (inputState.keys.size === 0 && inputState.mouseDeltaX === 0 && inputState.mouseDeltaY === 0)) {
+            return;
+        }
 
         const rotationDelta = this.rotationSpeed * dt;
         const moveDelta = this.moveSpeed * dt;
@@ -128,39 +82,37 @@ export class Camera {
         let verticalRotation = 0.0; // Pitch (around right axis)
         let moveDirection = vec3.create(); // Movement direction
 
-        // Arrow key rotation
-        if (this.keysPressed.has("arrowleft")) {
-            // Rotate left (yaw left)
-            horizontalRotation = rotationDelta;
-        }
-        if (this.keysPressed.has("arrowright")) {
-            // Rotate right (yaw right)
-            horizontalRotation = -rotationDelta;
-        }
-        if (this.keysPressed.has("arrowup")) {
-            // Look up (pitch up)
-            verticalRotation = rotationDelta;
-        }
-        if (this.keysPressed.has("arrowdown")) {
-            // Look down (pitch down)
-            verticalRotation = -rotationDelta;
+        // Mouse look (takes priority over arrow keys)
+        if (inputState.mouseDeltaX !== 0 || inputState.mouseDeltaY !== 0) {
+            horizontalRotation = -inputState.mouseDeltaX * rotationDelta;
+            verticalRotation = -inputState.mouseDeltaY * rotationDelta;
+        } else {
+            // Arrow key rotation (fallback if no mouse input)
+            if (inputState.keys.has("arrowleft")) {
+                horizontalRotation = rotationDelta;
+            }
+            if (inputState.keys.has("arrowright")) {
+                horizontalRotation = -rotationDelta;
+            }
+            if (inputState.keys.has("arrowup")) {
+                verticalRotation = rotationDelta;
+            }
+            if (inputState.keys.has("arrowdown")) {
+                verticalRotation = -rotationDelta;
+            }
         }
 
         // WASD movement
-        if (this.keysPressed.has("w")) {
-            // Move forward
+        if (inputState.keys.has("w")) {
             vec3.add(moveDirection, moveDirection, forward);
         }
-        if (this.keysPressed.has("s")) {
-            // Move backward
+        if (inputState.keys.has("s")) {
             vec3.subtract(moveDirection, moveDirection, forward);
         }
-        if (this.keysPressed.has("a")) {
-            // Move left
+        if (inputState.keys.has("a")) {
             vec3.subtract(moveDirection, moveDirection, right);
         }
-        if (this.keysPressed.has("d")) {
-            // Move right
+        if (inputState.keys.has("d")) {
             vec3.add(moveDirection, moveDirection, right);
         }
 

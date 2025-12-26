@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Kanit } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import GlueScene from "./components/GlueScene";
 import CampScene from "./components/CampScene";
+import CubeScene from "./components/CubeScene";
 import IdleWrapper from "./components/IdleWrapper";
 import Header from "./components/Header";
 
@@ -16,11 +18,102 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const kanit = Kanit({
+const kanit = localFont({
+  src: [
+    {
+      path: "../public/fonts/Kanit/Kanit-Thin.ttf",
+      weight: "100",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-ThinItalic.ttf",
+      weight: "100",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-ExtraLight.ttf",
+      weight: "200",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-ExtraLightItalic.ttf",
+      weight: "200",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Light.ttf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-LightItalic.ttf",
+      weight: "300",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Italic.ttf",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-MediumItalic.ttf",
+      weight: "500",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-SemiBoldItalic.ttf",
+      weight: "600",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-BoldItalic.ttf",
+      weight: "700",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-ExtraBold.ttf",
+      weight: "800",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-ExtraBoldItalic.ttf",
+      weight: "800",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-Black.ttf",
+      weight: "900",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/Kanit/Kanit-BlackItalic.ttf",
+      weight: "900",
+      style: "italic",
+    },
+  ],
   variable: "--font-kanit",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -44,8 +137,8 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}`}>
-        <div className="fixed inset-0 z-0">
-          <CampScene />
+        <div className="fixed inset-0 z-0 w-screen h-screen">
+          <CubeScene />
         </div>
         <IdleWrapper idleTimeoutSeconds={30}>
           <Header />

@@ -1,0 +1,48 @@
+{
+  "name": "@isaaclagoy/webgl-canvas",
+  "version": "1.0.7",
+  "description": "A React component for WebGL 2.0 rendering with a full-featured engine",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "webgl",
+    "webgl2",
+    "react",
+    "3d",
+    "rendering",
+    "canvas",
+    "graphics"
+  ],
+  "author": "isaaclagoy",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4",
+    "webgl-obj-loader": "^2.0.8"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IsaacLagoy/WebEngine.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

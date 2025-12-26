@@ -15,6 +15,9 @@ import type { RenderFunction } from "@/lib/webgl-canvas";
 export async function createGlueGunScene(gl: WebGL2RenderingContext): Promise<RenderFunction> {
   // Create engine
   const engine = await Engine.create(gl);
+  
+  // Ensure canvas is properly sized and aspect ratio is correct
+  engine.resizeCanvas();
 
   // Load quad shader for post-processing
   const quadProgram = await Shader.create(
@@ -77,17 +80,13 @@ export async function createGlueGunScene(gl: WebGL2RenderingContext): Promise<Re
   let rotationAngle = 0;
 
   // Create and return render function
-  const render: RenderFunction = (dt: number) => {
-    // Resize canvas
-    engine.resizeCanvas();
-
+  const renderFn = (dt: number) => {
+    // Don't resize canvas on every frame - only resize when needed via resize() method
+    // This prevents layout thrashing during scroll
     const canvas = engine.gl.canvas as HTMLCanvasElement;
     if (canvas.width === 0 || canvas.height === 0 || engine.width === 0 || engine.height === 0) {
       return;
     }
-
-    // Update camera
-    scene.camera.update(dt);
 
     // Rotate glue gun around Y axis (slowly)
     rotationAngle += dt * 0.5; // Slow rotation (0.5 radians per second)
@@ -95,7 +94,7 @@ export async function createGlueGunScene(gl: WebGL2RenderingContext): Promise<Re
     quat.fromEuler(rotation, 0, (rotationAngle * 180) / Math.PI, 0);
     glueGunNode.rotation = rotation;
 
-    // Update scene
+    // Update scene (includes camera update with input handling)
     scene.update(dt);
 
     // Render
@@ -115,12 +114,21 @@ export async function createGlueGunScene(gl: WebGL2RenderingContext): Promise<Re
     });
   };
 
-  // Add cleanup function
-  render.cleanup = () => {
-    if (scene.camera) {
-      scene.camera.destroy();
+  // Create render function with methods
+  const render = Object.assign(renderFn, {
+    cleanup: () => {
+      scene.disableCameraControls();
+      if (scene.camera) {
+        // Camera no longer has destroy method, but keep for compatibility
+      }
+    },
+    resize: () => {
+      engine.resizeCanvas();
+    },
+    enableControls: (canvas: HTMLCanvasElement) => {
+      scene.enableCameraControls(canvas);
     }
-  };
+  }) as RenderFunction;
 
   return render;
 }

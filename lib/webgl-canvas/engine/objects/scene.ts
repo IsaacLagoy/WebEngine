@@ -26,6 +26,22 @@ export class Scene {
     shader: Shader | null = null;
     camera: Camera;
     
+    // Input handling
+    private keysPressed: Set<string> = new Set();
+    private mouseDeltaX: number = 0;
+    private mouseDeltaY: number = 0;
+    private isPointerLocked: boolean = false;
+    private canvas: HTMLCanvasElement | null = null;
+    public mouseSensitivity: number = 0.002; // Mouse sensitivity multiplier
+    
+    // Event handler references for cleanup
+    private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
+    private handleKeyUp: ((e: KeyboardEvent) => void) | null = null;
+    private handleMouseMove: ((e: MouseEvent) => void) | null = null;
+    private handleMouseDown: ((e: MouseEvent) => void) | null = null;
+    private handlePointerLockChange: (() => void) | null = null;
+    private handlePointerLockError: (() => void) | null = null;
+    
     // Fog parameters
     fogColor: vec3 = vec3.fromValues(0.02, 0.02, 0.08);  // Fog color (very dark blue - darkens objects)
     fogStart: number = 30.0;   // Distance where fog starts (narrow range for testing)
@@ -284,6 +300,142 @@ export class Scene {
         }
     }
 
+    /**
+     * Enable camera controls for this scene
+     * @param canvas - Canvas element to attach event listeners to
+     */
+    enableCameraControls(canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+        this.setupInputListeners();
+    }
+
+    /**
+     * Disable camera controls and clean up event listeners
+     */
+    disableCameraControls() {
+        this.cleanupInputListeners();
+        this.canvas = null;
+    }
+
+    private setupInputListeners() {
+        if (!this.canvas) return;
+
+        // Keyboard handlers
+        // Only process keyboard events when this scene's canvas has focus or pointer lock
+        this.handleKeyDown = (e: KeyboardEvent) => {
+            // Only process if this canvas has pointer lock or is focused
+            if (!this.isPointerLocked && document.activeElement !== this.canvas) {
+                return;
+            }
+            
+            const key = e.key.toLowerCase();
+            if (key === "w" || key === "a" || key === "s" || key === "d" ||
+                key === "arrowup" || key === "arrowdown" || 
+                key === "arrowleft" || key === "arrowright") {
+                e.preventDefault();
+                this.keysPressed.add(key);
+            }
+        };
+
+        this.handleKeyUp = (e: KeyboardEvent) => {
+            // Only process if this canvas has pointer lock or is focused
+            if (!this.isPointerLocked && document.activeElement !== this.canvas) {
+                return;
+            }
+            
+            const key = e.key.toLowerCase();
+            if (key === "w" || key === "a" || key === "s" || key === "d" ||
+                key === "arrowup" || key === "arrowdown" || 
+                key === "arrowleft" || key === "arrowright") {
+                this.keysPressed.delete(key);
+            }
+        };
+
+        // Mouse movement handler (for pointer lock)
+        this.handleMouseMove = (e: MouseEvent) => {
+            if (this.isPointerLocked) {
+                // Mouse movement is in movementX/Y when pointer is locked
+                // Apply sensitivity multiplier
+                this.mouseDeltaX = (e.movementX || 0) * this.mouseSensitivity;
+                this.mouseDeltaY = (e.movementY || 0) * this.mouseSensitivity;
+            }
+        };
+
+        // Mouse click handler to request pointer lock
+        this.handleMouseDown = (e: MouseEvent) => {
+            if (!this.isPointerLocked && this.canvas) {
+                this.canvas.requestPointerLock();
+            }
+        };
+
+        // Pointer lock change handler
+        // Only process if this scene's canvas is the one that got/lost pointer lock
+        this.handlePointerLockChange = () => {
+            const wasLocked = this.isPointerLocked;
+            this.isPointerLocked = document.pointerLockElement === this.canvas;
+            
+            // Only process if the lock state changed for THIS canvas
+            if (wasLocked !== this.isPointerLocked) {
+                if (!this.isPointerLocked) {
+                    // Reset mouse delta when pointer lock is released
+                    this.mouseDeltaX = 0;
+                    this.mouseDeltaY = 0;
+                }
+            }
+        };
+
+        // Pointer lock error handler
+        this.handlePointerLockError = () => {
+            console.warn("Pointer lock failed");
+            this.isPointerLocked = false;
+        };
+
+        // Add event listeners
+        window.addEventListener("keydown", this.handleKeyDown);
+        window.addEventListener("keyup", this.handleKeyUp);
+        this.canvas.addEventListener("mousemove", this.handleMouseMove);
+        this.canvas.addEventListener("mousedown", this.handleMouseDown);
+        document.addEventListener("pointerlockchange", this.handlePointerLockChange);
+        document.addEventListener("pointerlockerror", this.handlePointerLockError);
+    }
+
+    private cleanupInputListeners() {
+        if (this.handleKeyDown) {
+            window.removeEventListener("keydown", this.handleKeyDown);
+            this.handleKeyDown = null;
+        }
+        if (this.handleKeyUp) {
+            window.removeEventListener("keyup", this.handleKeyUp);
+            this.handleKeyUp = null;
+        }
+        if (this.canvas && this.handleMouseMove) {
+            this.canvas.removeEventListener("mousemove", this.handleMouseMove);
+            this.handleMouseMove = null;
+        }
+        if (this.canvas && this.handleMouseDown) {
+            this.canvas.removeEventListener("mousedown", this.handleMouseDown);
+            this.handleMouseDown = null;
+        }
+        if (this.handlePointerLockChange) {
+            document.removeEventListener("pointerlockchange", this.handlePointerLockChange);
+            this.handlePointerLockChange = null;
+        }
+        if (this.handlePointerLockError) {
+            document.removeEventListener("pointerlockerror", this.handlePointerLockError);
+            this.handlePointerLockError = null;
+        }
+        
+        // Exit pointer lock if active
+        if (document.pointerLockElement === this.canvas) {
+            document.exitPointerLock();
+        }
+        
+        this.keysPressed.clear();
+        this.mouseDeltaX = 0;
+        this.mouseDeltaY = 0;
+        this.isPointerLocked = false;
+    }
+
     update(dt: number) {
         for (const node of this.nodes) {
             // Skip update for static nodes (like leaves)
@@ -295,6 +447,23 @@ export class Scene {
         // Update fire billboard animations
         for (const fireBillboard of this.fireBillboards) {
             fireBillboard.update(dt);
+        }
+
+        // Update camera with input state
+        if (this.canvas) {
+            const inputState = {
+                keys: this.keysPressed,
+                mouseDeltaX: this.mouseDeltaX,
+                mouseDeltaY: this.mouseDeltaY
+            };
+            this.camera.update(dt, inputState);
+            
+            // Reset mouse delta after processing (it's accumulated per frame)
+            this.mouseDeltaX = 0;
+            this.mouseDeltaY = 0;
+        } else {
+            // No input handling, update camera without input (empty state)
+            this.camera.update(dt, { keys: new Set(), mouseDeltaX: 0, mouseDeltaY: 0 });
         }
 
         if (this.shader) {

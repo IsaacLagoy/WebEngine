@@ -74,8 +74,9 @@ export class Material {
     metallicMultiplier: number = 1.0;  // Multiplier for metallic (1.0 = normal, >1.0 = more metallic, <1.0 = less metallic)
     textureTiling: number = 1.0;  // Texture tiling factor (1.0 = no tiling, >1.0 = repeat texture multiple times)
 
-    // Shared white texture (fallback when no texture is provided)
-    private static _defaultWhiteTexture: WebGLTexture | null = null;
+    // Per-context white texture cache (fallback when no texture is provided)
+    // Uses WeakMap to store textures per WebGL context, allowing garbage collection
+    private static _defaultWhiteTextures = new WeakMap<WebGL2RenderingContext, WebGLTexture>();
 
     constructor(engine: Engine) {
         this.engine = engine;
@@ -152,10 +153,16 @@ export class Material {
      * Creates a 1x1 white texture as a fallback
      * Used when a material doesn't have a texture map
      * Also used for nodes without materials
+     * 
+     * IMPORTANT: Each WebGL context gets its own texture since textures are context-specific
      */
     static defaultWhiteTexture(gl: WebGL2RenderingContext): WebGLTexture {
-        if (!Material._defaultWhiteTexture) {
-            const tex = gl.createTexture()!;
+        // Check if we already have a texture for this context
+        let tex = Material._defaultWhiteTextures.get(gl);
+        
+        if (!tex) {
+            // Create a new texture for this context
+            tex = gl.createTexture()!;
             gl.bindTexture(gl.TEXTURE_2D, tex);
             gl.texImage2D(
                 gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
@@ -166,8 +173,10 @@ export class Material {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            Material._defaultWhiteTexture = tex;
+            // Store it for this context
+            Material._defaultWhiteTextures.set(gl, tex);
         }
-        return Material._defaultWhiteTexture;
+        
+        return tex;
     }
 }

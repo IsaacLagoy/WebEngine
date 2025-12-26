@@ -8,7 +8,7 @@ import { Terrain } from "@/lib/webgl-canvas/engine/objects/terrain";
 import { PointLight } from "@/lib/webgl-canvas/engine/objects/pointLight";
 import { Skybox } from "@/lib/webgl-canvas/engine/objects/skybox";
 import { Tree, TreeSpawnConfig } from "@/lib/webgl-canvas/engine/objects/tree";
-import { vec3, quat } from "gl-matrix";
+import { vec3, quat, mat4 } from "gl-matrix";
 import type { RenderFunction } from "@/lib/webgl-canvas";
 
 /**
@@ -66,16 +66,19 @@ class CampfireScene extends Scene {
 export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<RenderFunction> {
   // Create engine
   const engine = await Engine.create(gl);
+  
+  // Ensure canvas is properly sized and aspect ratio is correct
+  engine.resizeCanvas();
 
-  // Load quad shader for post-processing
-  const quadProgram = await Shader.create(
+  // Load edge detection shader for post-processing
+  const edgeProgram = await Shader.create(
     gl,
     "/shaders/quad.vert",
-    "/shaders/quantizeBucket.frag"
+    "/shaders/edge.frag"
   );
 
-  // Assign quad program to engine framebuffer for final output
-  engine.framebuffer.program = quadProgram;
+  // Assign edge program to engine framebuffer for final output
+  engine.framebuffer.program = edgeProgram;
 
   // Load all scene shaders
   const program = await Shader.create(
@@ -103,6 +106,9 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
   // Create scene
   const scene = new CampfireScene(engine, program, fireLight);
   engine.scene = scene;
+
+  // Ensure camera has correct aspect ratio after scene creation
+  scene.camera.updateAspectRatio();
 
   // Set camera initial state
   // Target: [0.31, 2.62, 1.80], Yaw: -172.75°, Pitch: 2.07°
@@ -361,19 +367,15 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
   }
 
   // Create and return render function
-  const render: RenderFunction = (dt: number) => {
-    // Resize canvas
-    engine.resizeCanvas();
-
+  const renderFn = (dt: number) => {
+    // Don't resize canvas on every frame - only resize when needed via resize() method
+    // This prevents layout thrashing during scroll
     const canvas = engine.gl.canvas as HTMLCanvasElement;
     if (canvas.width === 0 || canvas.height === 0 || engine.width === 0 || engine.height === 0) {
       return;
     }
 
-    // Update camera
-    scene.camera.update(dt);
-
-    // Update scene (includes fire light animation)
+    // Update scene (includes camera update with input handling and fire light animation)
     scene.update(dt);
 
     // Render
@@ -381,24 +383,39 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
     scene.render();
     engine.use();
     engine.framebuffer.render((gl, program) => {
-      const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
-      if (quantizationLevelLoc !== null) {
-        gl.uniform1f(quantizationLevelLoc, 8.0);
-      }
-
+      // Set resolution for edge detection
       const resolutionLoc = gl.getUniformLocation(program, "uResolution");
       if (resolutionLoc !== null) {
         gl.uniform2f(resolutionLoc, engine.width, engine.height);
       }
+
+      // Set inverse view-projection matrix for position reconstruction
+      const viewProjMatrix = scene.camera.getViewProjectionMatrix();
+      const inverseViewProj = mat4.create();
+      mat4.invert(inverseViewProj, viewProjMatrix);
+      
+      const inverseViewProjLoc = gl.getUniformLocation(program, "uInverseViewProj");
+      if (inverseViewProjLoc !== null) {
+        gl.uniformMatrix4fv(inverseViewProjLoc, false, inverseViewProj);
+      }
     });
   };
 
-  // Add cleanup function
-  render.cleanup = () => {
-    if (scene.camera) {
-      scene.camera.destroy();
+  // Create render function with methods
+  const render = Object.assign(renderFn, {
+    cleanup: () => {
+      scene.disableCameraControls();
+      if (scene.camera) {
+        // Camera no longer has destroy method, but keep for compatibility
+      }
+    },
+    resize: () => {
+      engine.resizeCanvas();
+    },
+    enableControls: (canvas: HTMLCanvasElement) => {
+      scene.enableCameraControls(canvas);
     }
-  };
+  }) as RenderFunction;
 
   return render;
 }

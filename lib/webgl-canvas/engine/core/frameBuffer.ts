@@ -11,13 +11,13 @@ import { vec4 } from "gl-matrix";
  * 
  * Components:
  * - Color texture: stores the rendered image (RGBA pixels)
- * - Depth buffer: stores depth information for proper occlusion
+ * - Depth texture: stores depth information for proper occlusion and post-processing
  */
 export class FrameBuffer {
     engine: Engine;
     framebuffer: WebGLFramebuffer | null = null;
     colorTexture: WebGLTexture | null = null;  // The rendered image
-    depthBuffer: WebGLRenderbuffer | null = null;  // Depth information
+    depthTexture: WebGLTexture | null = null;  // Depth information (as texture for sampling)
     program: Shader | null = null;
     lastWidth: number = 0;
     lastHeight: number = 0;
@@ -92,12 +92,15 @@ export class FrameBuffer {
         const viewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
         
         const canvas = gl.canvas as HTMLCanvasElement;
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
+        // Use CSS display size for final viewport (not internal render resolution)
+        // This ensures the scaled framebuffer is stretched to fill the display
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = Math.round(canvas.clientWidth * dpr);
+        const displayHeight = Math.round(canvas.clientHeight * dpr);
 
         // Bind to screen (null framebuffer) - ensure we're rendering to screen
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, canvasWidth, canvasHeight);
+        gl.viewport(0, 0, displayWidth, displayHeight);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.disable(gl.DEPTH_TEST);
 
@@ -110,6 +113,10 @@ export class FrameBuffer {
         this.program.use();
         // Use shader's bindTexture method (matches C++ shader->bind())
         this.program.bindTexture("uTexture", this.colorTexture, 0);
+        // Also bind depth texture if available (for post-processing effects like edge detection)
+        if (this.depthTexture) {
+            this.program.bindTexture("uDepthTexture", this.depthTexture, 1);
+        }
 
         if (beforeDraw) {
             beforeDraw(gl, this.program.program);
@@ -132,10 +139,10 @@ export class FrameBuffer {
     destroy() {
         const gl = this.gl();
         if (this.colorTexture) gl.deleteTexture(this.colorTexture);
-        if (this.depthBuffer) gl.deleteRenderbuffer(this.depthBuffer);
+        if (this.depthTexture) gl.deleteTexture(this.depthTexture);
         if (this.framebuffer) gl.deleteFramebuffer(this.framebuffer);
         this.colorTexture = null;
-        this.depthBuffer = null;
+        this.depthTexture = null;
         this.framebuffer = null;
     }
 
@@ -167,15 +174,23 @@ export class FrameBuffer {
         // Attach color texture to framebuffer (this is where color data goes)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorTexture, 0);
 
-        // Create depth buffer - stores depth information for proper 3D rendering
-        // Depth buffer ensures closer objects occlude farther ones
-        this.depthBuffer = gl.createRenderbuffer();
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
-        // Prefer 24-bit depth for better precision; fall back if unsupported
-        const depthFormat = gl.DEPTH_COMPONENT24 || gl.DEPTH_COMPONENT16;
-        gl.renderbufferStorage(gl.RENDERBUFFER, depthFormat, this.engine.width, this.engine.height);
-        // Attach depth buffer to framebuffer
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
+        // Create depth texture - stores depth information for proper 3D rendering and post-processing
+        // Depth texture allows us to sample depth in shaders for effects like edge detection
+        this.depthTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.depthTexture);
+        // Allocate depth texture (DEPTH_COMPONENT24 for 24-bit depth precision)
+        // WebGL2 supports DEPTH_COMPONENT24, DEPTH_COMPONENT32F, DEPTH24_STENCIL8, etc.
+        // Using DEPTH_COMPONENT24 with UNSIGNED_INT type
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, this.engine.width, this.engine.height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+        
+        // Set texture filtering for depth texture
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);  // Nearest for depth (no interpolation)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);  // Nearest for depth
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        
+        // Attach depth texture to framebuffer
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTexture, 0);
 
         // Check framebuffer completeness
         const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
@@ -191,7 +206,6 @@ export class FrameBuffer {
 
         // unbind
         gl.bindTexture(gl.TEXTURE_2D, null);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 }

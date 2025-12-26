@@ -41,13 +41,27 @@ export class Node {
         vec3.scale(velocityScaled, this.velocity, dt);
         vec3.add(this.position, velocityScaled, this.position);
 
-        // integrate angular velocity
-        const dq = quat.create();
-        const qOmega = quat.fromValues(this.angularVelocity[0], this.angularVelocity[1], this.angularVelocity[2], 0);
-        quat.multiply(dq, this.rotation, qOmega);
-        quat.scale(dq, dq, 0.5 * dt);
-        quat.add(this.rotation, this.rotation, dq);
-        quat.normalize(this.rotation, this.rotation);
+        // integrate angular velocity using proper quaternion integration
+        // Formula: dq/dt = 0.5 * q * ω, where ω is angular velocity as a pure quaternion
+        // The correct integration is: q_new = q_old * exp(0.5 * dt * ω)
+        // For small dt, we approximate using axis-angle representation
+        const angularSpeed = vec3.length(this.angularVelocity);
+        if (angularSpeed > 0.0001) {
+            // Calculate the total rotation angle: θ = |ω| * dt
+            const rotationAngle = angularSpeed * dt;
+            const axis = vec3.create();
+            vec3.normalize(axis, this.angularVelocity);
+            
+            // Create quaternion from axis-angle: q = [sin(θ/2)*axis, cos(θ/2)]
+            // setAxisAngle expects the full angle, not half angle
+            const qDelta = quat.create();
+            quat.setAxisAngle(qDelta, axis, rotationAngle);
+            
+            // Multiply rotations: q_new = q_old * q_delta
+            // This correctly accumulates rotation over time
+            quat.multiply(this.rotation, this.rotation, qDelta);
+            quat.normalize(this.rotation, this.rotation);
+        }
     }
 
     updateMatrix() {
