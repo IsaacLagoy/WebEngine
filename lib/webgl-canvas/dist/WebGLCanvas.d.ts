@@ -8,7 +8,12 @@ interface WebGLCanvasProps {
      * Default: 1.0 (full resolution)
      */
     resolutionScale?: number;
+    /**
+     * Whether to show the FPS counter on the canvas
+     * Default: false
+     */
+    showFPS?: boolean;
 }
-export default function WebGLCanvas({ sceneFactory, resolutionScale }: WebGLCanvasProps): import("react/jsx-runtime").JSX.Element;
+export default function WebGLCanvas({ sceneFactory, resolutionScale, showFPS }: WebGLCanvasProps): import("react/jsx-runtime").JSX.Element;
 export {};
 //# sourceMappingURL=WebGLCanvas.d.ts.map

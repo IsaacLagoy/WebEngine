@@ -12,9 +12,14 @@ interface WebGLCanvasProps {
    * Default: 1.0 (full resolution)
    */
   resolutionScale?: number;
+  /**
+   * Whether to show the FPS counter on the canvas
+   * Default: false
+   */
+  showFPS?: boolean;
 }
 
-export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0 }: WebGLCanvasProps) {
+export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0, showFPS = false }: WebGLCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fpsRef = useRef<HTMLDivElement>(null);
@@ -103,14 +108,16 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0 }: Web
         // Call render function from factory
         renderFunctionRef.current(dt);
 
-        // Update FPS display
-        frameCount++;
-        const fpsElapsed = time - fpsLastTime;
-        if (fpsElapsed >= fpsUpdateInterval && fpsRef.current) {
-          const fps = Math.round((frameCount * 1000) / fpsElapsed);
-          fpsRef.current.textContent = `FPS: ${fps}`;
-          frameCount = 0;
-          fpsLastTime = time;
+        // Update FPS display if enabled
+        if (showFPS) {
+          frameCount++;
+          const fpsElapsed = time - fpsLastTime;
+          if (fpsElapsed >= fpsUpdateInterval && fpsRef.current) {
+            const fps = Math.round((frameCount * 1000) / fpsElapsed);
+            fpsRef.current.textContent = `FPS: ${fps}`;
+            frameCount = 0;
+            fpsLastTime = time;
+          }
         }
 
         renderLoopRef.current = requestAnimationFrame(animate);
@@ -135,7 +142,7 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0 }: Web
         renderLoopRef.current = null;
       }
     };
-  }, [sceneFactory]);
+  }, [sceneFactory, resolutionScale, showFPS]);
 
   // Use Intersection Observer to pause rendering when canvas is off-screen
   useEffect(() => {
@@ -172,25 +179,27 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0 }: Web
         }}
       />
       {/* FPS Debug Display */}
-      <div
-        ref={fpsRef}
-        style={{
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          color: "white",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: "8px 12px",
-          borderRadius: "4px",
-          fontFamily: "monospace",
-          fontSize: "14px",
-          fontWeight: "bold",
-          zIndex: 10,
-          pointerEvents: "none",
-        }}
-      >
-        FPS: --
-      </div>
+      {showFPS && (
+        <div
+          ref={fpsRef}
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            color: "white",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            padding: "8px 12px",
+            borderRadius: "4px",
+            fontFamily: "monospace",
+            fontSize: "14px",
+            fontWeight: "bold",
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          FPS: --
+        </div>
+      )}
       {/* Loading overlay */}
       <div
         className={`absolute inset-0 bg-black transition-opacity duration-1000 ${

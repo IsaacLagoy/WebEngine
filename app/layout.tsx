@@ -138,7 +138,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}`}>
         <div className="fixed inset-0 z-0 w-screen h-screen">
-          <CubeScene />
+          <CampScene />
         </div>
         <IdleWrapper idleTimeoutSeconds={30}>
           <Header />

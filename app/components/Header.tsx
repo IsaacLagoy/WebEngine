@@ -23,7 +23,7 @@ export default function Header() {
         <HeaderLink href="/">Home</HeaderLink>
         <HeaderLink href="/projects">Projects</HeaderLink>
         <HeaderLink href="/experience">Experience</HeaderLink>
-        <HeaderLink href="/dnd">D&D</HeaderLink>
+        {/* <HeaderLink href="/dnd">D&D</HeaderLink> */}
       </nav>
     </header>
   );

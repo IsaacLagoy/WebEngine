@@ -70,15 +70,15 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
   // Ensure canvas is properly sized and aspect ratio is correct
   engine.resizeCanvas();
 
-  // Load edge detection shader for post-processing
-  const edgeProgram = await Shader.create(
+  // Load quantizeBucket shader for post-processing
+  const quadProgram = await Shader.create(
     gl,
     "/shaders/quad.vert",
-    "/shaders/edge.frag"
+    "/shaders/quantizeBucket.frag"
   );
 
-  // Assign edge program to engine framebuffer for final output
-  engine.framebuffer.program = edgeProgram;
+  // Assign quad program to engine framebuffer for final output
+  engine.framebuffer.program = quadProgram;
 
   // Load all scene shaders
   const program = await Shader.create(
@@ -359,7 +359,7 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
       terrainParams: terrainParams,
       logBaseScale: 0.012 * 3 * 2,
       logHeightVariation: 0.008 * 3 * 2,
-      leafSpawnChance: 0.05,
+      leafSpawnChance: 0.025,
     };
 
     const { treeNodes } = await Tree.spawnTrees(engine, scene, treeMesh, barkMaterial, treeConfig);
@@ -383,20 +383,16 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
     scene.render();
     engine.use();
     engine.framebuffer.render((gl, program) => {
-      // Set resolution for edge detection
+      // Set quantization level for quantizeBucket shader
+      const quantizationLevelLoc = gl.getUniformLocation(program, "uQuantizationLevel");
+      if (quantizationLevelLoc !== null) {
+        gl.uniform1f(quantizationLevelLoc, 8.0);
+      }
+
+      // Set resolution
       const resolutionLoc = gl.getUniformLocation(program, "uResolution");
       if (resolutionLoc !== null) {
         gl.uniform2f(resolutionLoc, engine.width, engine.height);
-      }
-
-      // Set inverse view-projection matrix for position reconstruction
-      const viewProjMatrix = scene.camera.getViewProjectionMatrix();
-      const inverseViewProj = mat4.create();
-      mat4.invert(inverseViewProj, viewProjMatrix);
-      
-      const inverseViewProjLoc = gl.getUniformLocation(program, "uInverseViewProj");
-      if (inverseViewProjLoc !== null) {
-        gl.uniformMatrix4fv(inverseViewProjLoc, false, inverseViewProj);
       }
     });
   };
@@ -413,7 +409,8 @@ export async function createCampfireScene(gl: WebGL2RenderingContext): Promise<R
       engine.resizeCanvas();
     },
     enableControls: (canvas: HTMLCanvasElement) => {
-      scene.enableCameraControls(canvas);
+      // Camera controls disabled - no movement allowed
+      // scene.enableCameraControls(canvas);
     }
   }) as RenderFunction;
 
