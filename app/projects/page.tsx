@@ -21,6 +21,27 @@ const projects: Project[] = [
     href: "/projects/basilisk",
   },
   {
+    id: "crumple-quest",
+    title: "Crumple Quest",
+    description: "A puzzle platformer where you fold paper levels to solve puzzles and progress through the game.",
+    image: "/images/projects/crumple_quest.png",
+    href: "/projects/crumpleQuest",
+  },
+  {
+    id: "pos-system",
+    title: "Restaurant Point of Sale System",
+    description: "An AI-powered POS system that manages customer orders and provides Text-to-Speech responses.",
+    image: "/images/projects/pos_home.png",
+    href: "/projects/posSystem",
+  },
+  {
+    id: "avbd3d",
+    title: "AVBD 3D Physics Engine",
+    description: "Extended the AVBD 2D engine into a fully 3D solver ahead of the public release of the University of Utah's research implementation.",
+    image: "/images/projects/avbd3d.png",
+    href: "/projects/avbd3d",
+  },
+  {
     id: "selva",
     title: "Selva",
     description: "Remember who you are and open portals to your memories using picture frames. Solve puzzles in each memory.",

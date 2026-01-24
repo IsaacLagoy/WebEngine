@@ -59,5 +59,30 @@
         "subject": "CSCE",
         "course": 314,
         "description": "Exploration of the design space of programming languages via an in-depth study of two programming languages, one functional and one object-oriented; focuses on idiomatic uses of each language and on features characteristic for each language."
+    },
+    {
+        "name": "Principles of Statistics I",
+        "subject": "STAT",
+        "course": 211,
+        "description": "Introduction to probability and probability distributions; sampling and descriptive measures; inference and hypothesis testing; linear regression, analysis of variance."
+    },
+    {
+        "name": "Introduction to Computer Systems",
+        "subject": "CSCE",
+        "course": 313,
+        "description": "Introduction to system support for application programs, both on single node and over network including OS application interface, inter-process communication, introduction to system and network programming, and simple computer security concepts; hands-on lab assignments."
+    },
+    {
+        "name": "Foundations of Software Engineering",
+        "subject": "CSCE",
+        "course": 331,
+        "description": "Intensive programming experience and provision of the fundamentals needed for larger-scale software development; integration of concepts in computer science and familiarization with a variety of programming and development tools and techniques; team projects each with an emphasis on a different specialization within computer science; emphasis on programming techniques to ease code integration and clarity; practical exposure to software-engineering processes through large-scale projects and specification and documentation."
+    },
+    {
+        "name": "Analysis of Algorithms",
+        "subject": "CSCE",
+        "course": 629,
+        "description": "Concrete algorithm design and analysis; abstract models to analyze the complexity of problems; NP-Completeness; approximation and probabilistic algorithms."
     }
+    
 ]

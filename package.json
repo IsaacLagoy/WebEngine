@@ -11,7 +11,7 @@
   "dependencies": {
     "firebase": "^12.7.0",
     "gl-matrix": "^3.4.4",
-    "next": "16.0.8",
+    "next": "^16.1.4",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "tone": "^15.1.22",

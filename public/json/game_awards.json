@@ -1,5 +1,15 @@
 [
     {
+        "name": "2nd Place Chillennium 2025",
+        "image": "chillennium_2nd_2025.png",
+        "href": "emulsion"
+    },
+    {
+        "name": "TAGD Fall 2025 Best in Programming",
+        "image": "fall_best_programming_2025.png",
+        "href": "crumpleQuest"
+    },
+    {
         "name": "TAGD Spring 2024 Best in Programming",
         "image": "spring_best_programming_2024.jpeg",
         "href": "diceyDecks"
@@ -8,11 +18,6 @@
         "name": "TAGD Fall 2024 Best in Design",
         "image": "design_award_fall_2024.png",
         "href": "indepenDanceDay"
-    },
-    {
-        "name": "2nd Place Chillennium 2025",
-        "image": "chillennium_2nd_2025.png",
-        "href": "emulsion"
     },
     {
         "name": "TAGD Spring 2025 Best in Programming",

@@ -88,42 +88,50 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0, showF
       }
 
       // Start render loop
-      let lastTime = performance.now();
       let frameCount = 0;
       let fpsLastTime = performance.now();
       const fpsUpdateInterval = 500;
+      const targetFPS = 20; // Target frames per second
+      const frameInterval = 1000 / targetFPS; // Time between frames in ms
+      let lastRenderTime = performance.now();
 
-      const animate = (time: number) => {
+      const animate = () => {
         if (!renderFunctionRef.current) return;
-        
+
         // Pause rendering when canvas is not visible
         if (isPausedRef.current) {
-          renderLoopRef.current = requestAnimationFrame(animate);
+          renderLoopRef.current = window.setTimeout(animate, frameInterval);
           return;
         }
 
-        const dt = Math.min((time - lastTime) / 1000, 0.1);
-        lastTime = time;
+        const now = performance.now();
+        const elapsed = now - lastRenderTime;
 
-        // Call render function from factory
-        renderFunctionRef.current(dt);
+        if (elapsed >= frameInterval) {
+          const dt = Math.min(elapsed / 1000, 0.1);
+          lastRenderTime = now;
 
-        // Update FPS display if enabled
-        if (showFPS) {
-          frameCount++;
-          const fpsElapsed = time - fpsLastTime;
-          if (fpsElapsed >= fpsUpdateInterval && fpsRef.current) {
-            const fps = Math.round((frameCount * 1000) / fpsElapsed);
-            fpsRef.current.textContent = `FPS: ${fps}`;
-            frameCount = 0;
-            fpsLastTime = time;
+          // Call render function from factory
+          renderFunctionRef.current(dt);
+
+          // Update FPS display if enabled
+          if (showFPS) {
+            frameCount++;
+            const fpsElapsed = now - fpsLastTime;
+            if (fpsElapsed >= fpsUpdateInterval && fpsRef.current) {
+              const fps = Math.round((frameCount * 1000) / fpsElapsed);
+              fpsRef.current.textContent = `FPS: ${fps}`;
+              frameCount = 0;
+              fpsLastTime = now;
+            }
           }
         }
 
-        renderLoopRef.current = requestAnimationFrame(animate);
+        // Schedule the next frame using setTimeout
+        renderLoopRef.current = window.setTimeout(animate, frameInterval);
       };
 
-      renderLoopRef.current = requestAnimationFrame(animate);
+      renderLoopRef.current = window.setTimeout(animate, frameInterval);
       setIsLoading(false);
     };
 
@@ -138,6 +146,8 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0, showF
         renderFunctionRef.current.cleanup();
       }
       if (renderLoopRef.current !== null) {
+        // Clear both setTimeout and requestAnimationFrame
+        clearTimeout(renderLoopRef.current);
         cancelAnimationFrame(renderLoopRef.current);
         renderLoopRef.current = null;
       }
