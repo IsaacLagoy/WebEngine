@@ -1,6 +1,6 @@
 {
   "name": "@isaaclagoy/webgl-canvas",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A React component for WebGL 2.0 rendering with a full-featured engine",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
