@@ -51,7 +51,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if not already initialized (prevents duplicate instances)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);
 
 // Enable persistence for offline support and caching (only on client side)

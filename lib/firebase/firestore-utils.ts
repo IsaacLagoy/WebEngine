@@ -49,28 +49,19 @@ export async function readCollection<T extends Record<string, any>>(
  * @param item - The item data to add (without id)
  * @param docId - Optional document ID. If not provided, Firestore will generate one
  * @returns The document ID
+ * @throws FirestoreError with code 'permission-denied' if user lacks write permissions
  */
 export async function addToCollection<T extends Record<string, any>>(
   collectionName: string,
   item: T,
   docId?: string
 ): Promise<string> {
-  try {
-    const docRef = docId
-      ? doc(db, collectionName, docId)
-      : doc(collection(db, collectionName));
-    
-    await setDoc(docRef, item);
-    return docRef.id;
-  } catch (err) {
-    const firestoreError = err as FirestoreError;
-    if (firestoreError.code === "permission-denied") {
-      console.error(
-        `Firestore permission denied for collection '${collectionName}'. Please update your Firestore security rules.`
-      );
-    }
-    throw err;
-  }
+  const docRef = docId
+    ? doc(db, collectionName, docId)
+    : doc(collection(db, collectionName));
+  
+  await setDoc(docRef, item);
+  return docRef.id;
 }
 
 /**
@@ -79,27 +70,18 @@ export async function addToCollection<T extends Record<string, any>>(
  * @param collectionName - Name of the collection to add to
  * @param items - Object where keys are document IDs and values are the item data
  * @returns Promise that resolves when the batch is committed
+ * @throws FirestoreError with code 'permission-denied' if user lacks write permissions
  */
 export async function addToCollectionBatch<T extends Record<string, any>>(
   collectionName: string,
   items: Record<string, T>
 ): Promise<void> {
-  try {
-    const batch = writeBatch(db);
+  const batch = writeBatch(db);
 
-    Object.entries(items).forEach(([id, item]) => {
-      const docRef = doc(db, collectionName, id);
-      batch.set(docRef, item);
-    });
+  Object.entries(items).forEach(([id, item]) => {
+    const docRef = doc(db, collectionName, id);
+    batch.set(docRef, item);
+  });
 
-    await batch.commit();
-  } catch (err) {
-    const firestoreError = err as FirestoreError;
-    if (firestoreError.code === "permission-denied") {
-      console.error(
-        `Firestore permission denied for collection '${collectionName}'. Please update your Firestore security rules.`
-      );
-    }
-    throw err;
-  }
+  await batch.commit();
 }

@@ -45,14 +45,6 @@ export default function ExperiencePage() {
     fetchData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen py-20 px-4 md:px-8 flex items-center justify-center">
-        <div className="text-white/70">Loading...</div>
-      </div>
-    );
-  }
-
   const sortedClasswork = [...classwork].sort((a, b) => b.course - a.course);
 
   return (

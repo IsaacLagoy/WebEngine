@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AuthButton from "./AuthButton";
 
 function HeaderLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,12 +20,16 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 p-4">
-      <nav className="flex items-center justify-center gap-6">
-        <HeaderLink href="/">Home</HeaderLink>
-        <HeaderLink href="/projects">Projects</HeaderLink>
-        <HeaderLink href="/experience">Experience</HeaderLink>
-        {/* <HeaderLink href="/dnd">D&D</HeaderLink> */}
-      </nav>
+      <div className="flex justify-between">
+        <div></div>
+        <nav className="flex items-center justify-center gap-6">
+          <HeaderLink href="/">Home</HeaderLink>
+          <HeaderLink href="/projects">Projects</HeaderLink>
+          <HeaderLink href="/experience">Experience</HeaderLink>
+          <HeaderLink href="/dnd">D&D</HeaderLink>
+        </nav>
+        <AuthButton />
+      </div>
     </header>
   );
 }

@@ -7,6 +7,7 @@ import CampScene from "./components/CampScene";
 import CubeScene from "./components/CubeScene";
 import IdleWrapper from "./components/IdleWrapper";
 import Header from "./components/Header";
+import { AuthProvider } from "./components/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -137,13 +138,15 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}`}>
-        <div className="fixed inset-0 z-0 w-screen h-screen">
-          <CampScene />
-        </div>
-        <IdleWrapper idleTimeoutSeconds={30}>
-          <Header />
-          <div className="relative z-10">{children}</div>
-        </IdleWrapper>
+        <AuthProvider>
+          <div className="fixed inset-0 z-0 w-screen h-screen">
+            <CampScene />
+          </div>
+          <IdleWrapper idleTimeoutSeconds={30}>
+            <Header />
+            <div className="relative z-10">{children}</div>
+          </IdleWrapper>
+        </AuthProvider>
       </body>
     </html>
   );
