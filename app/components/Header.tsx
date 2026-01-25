@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AuthButton from "./AuthButton";
+import AuthButton from "./auth/AuthButton";
 
 function HeaderLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname();

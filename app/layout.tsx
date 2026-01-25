@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import GlueScene from "./components/GlueScene";
 import CampScene from "./components/CampScene";
-import CubeScene from "./components/CubeScene";
 import IdleWrapper from "./components/IdleWrapper";
 import Header from "./components/Header";
-import { AuthProvider } from "./components/AuthContext";
+import { AuthProvider } from "./components/auth/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

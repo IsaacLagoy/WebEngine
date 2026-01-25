@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { MagicElement, MagicElementData, readCollection, addToCollectionBatch, addToCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
-import FormModal, { FieldConfig } from "@/app/components/FormModal";
-import DetailModal, { DisplayFieldConfig } from "@/app/components/DetailModal";
+import FormModal, { FieldConfig } from "@/app/components/modal/FormModal";
+import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailModal";
 
 // Define form fields based on MagicElementData type
 const MAGIC_ELEMENT_FIELDS: FieldConfig[] = [

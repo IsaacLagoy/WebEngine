@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Glass from "./Glass";
+import Glass from "../Glass";
 
 type BaseModalProps = {
   isOpen: boolean;
