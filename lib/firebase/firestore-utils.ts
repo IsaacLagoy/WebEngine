@@ -7,6 +7,7 @@ import {
   query,
   limit,
   FirestoreError,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "./config";
 
@@ -84,4 +85,28 @@ export async function addToCollectionBatch<T extends Record<string, any>>(
   });
 
   await batch.commit();
+}
+
+/**
+ * Removes a single document from a Firestore collection
+ * @param collectionName - Name of the collection to remove from
+ * @param docId - The document ID to remove
+ * @throws FirestoreError with code 'not-found' if the document does not exist
+ */
+export async function removeFromCollection(
+  collectionName: string,
+  docId: string
+): Promise<void> {
+  try {
+    const docRef = doc(db, collectionName, docId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    const firestoreError = err as FirestoreError;
+    if (firestoreError.code === "not-found") {
+      console.error(
+        `Document with ID '${docId}' not found in collection '${collectionName}'.`
+      );
+    }
+    throw err;
+  }
 }

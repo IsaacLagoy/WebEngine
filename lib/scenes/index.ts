@@ -6,6 +6,4 @@
  */
 
 export { createCampfireScene } from "./campfireScene";
-export { createGlueGunScene } from "./glueGunScene";
-export { createCubeScene } from "./cubeScene";
 
