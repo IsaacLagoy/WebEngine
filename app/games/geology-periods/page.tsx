@@ -9,15 +9,15 @@ export default function GamesPage() {
 
   return (
     <div className="min-h-screen px-4 md:px-8 pt-20 md:pt-24 pb-8 md:pb-12">
-      <div className="max-w-7xl mx-auto space-y-12">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-12">
         {/* Hero */}
         <section className="text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4">
             Geologic Time Periods
           </h1>
           <button
             onClick={() => setReveal(!reveal)}
-            className="px-4 py-2 rounded-md bg-white/20 text-white hover:bg-white/30 transition"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-md bg-white/20 text-white hover:bg-white/30 transition"
           >
             {reveal ? "Hide Answers" : "Reveal Answers"}
           </button>
@@ -25,7 +25,7 @@ export default function GamesPage() {
 
         {/* Chart */}
         <section className="flex justify-center">
-          <Glass className="p-10 max-w-[800px]">
+          <Glass className="p-2 sm:p-4 md:p-6 lg:p-10 max-w-[800px] w-full">
             <div className="grid grid-cols-5 gap-0.5">
 
               {/* EONS */}
