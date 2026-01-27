@@ -34,7 +34,7 @@ useLayoutEffect(() => {
 
   let rafId: number;
   let offset = 0;
-  const speed = 1;
+  const speed = 0.3;
 
   // Measure ONCE, after layout has settled
   const measure = () => {

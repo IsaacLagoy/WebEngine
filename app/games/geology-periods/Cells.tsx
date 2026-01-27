@@ -1,0 +1,43 @@
+import { useState } from "react";
+
+export function HeaderCell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="row-span-2 p-1">
+      <div className="h-full bg-white/10 shadow-inner rounded-md flex items-center justify-center text-2xl font-bold text-white">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function Cell({
+  answer,
+  reveal,
+  span = 1,
+}: {
+  answer: string;
+  reveal: boolean;
+  span?: number;
+}) {
+  const [value, setValue] = useState("");
+
+  const lowerValue = value.trim().toLowerCase();
+  const lowerAnswer = answer.trim().toLowerCase();
+
+  let bgClass = "bg-white/10";
+  if (reveal && value) {
+    bgClass = lowerValue === lowerAnswer ? "bg-green-500/50" : "bg-red-500/50";
+  }
+
+  return (
+    <div className={`row-span-${span} p-1`}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className={`h-full w-full shadow-inner rounded-md px-3 text-white text-sm outline-none ${bgClass} placeholder-white/50`}
+        placeholder="Type here"
+      />
+    </div>
+  );
+}
