@@ -29,8 +29,16 @@ export function Cell({
     bgClass = lowerValue === lowerAnswer ? "bg-green-500/50" : "bg-red-500/50";
   }
 
+  // Map span to explicit Tailwind classes
+  const spanClass = 
+      span === 2 ? "row-span-2" 
+    : span === 3 ? "row-span-3" 
+    : span === 7 ? "row-span-7" 
+    : span === 17 ? "row-span-17" 
+    : "row-span-1";
+
   return (
-    <div className={`row-span-${span} p-0.5 sm:p-1`}>
+    <div className={`${spanClass} p-0.5 sm:p-1`}>
       <input
         type="text"
         value={value}
