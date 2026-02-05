@@ -14,14 +14,21 @@ export function Cell({
   answer,
   reveal,
   span = 1,
+  value: controlledValue,
+  onChange,
 }: {
   answer: string;
   reveal: boolean;
   span?: number;
+  value?: string;
+  onChange?: (v: string) => void;
 }) {
-  const [value, setValue] = useState("");
+  const isControlled = controlledValue !== undefined && onChange !== undefined;
+  const [internalValue, setInternalValue] = useState("");
+  const value = isControlled ? controlledValue : internalValue;
+  const setValue = isControlled ? onChange! : setInternalValue;
 
-  const lowerValue = value.trim().toLowerCase();
+  const lowerValue = (value ?? "").trim().toLowerCase();
   const lowerAnswer = answer.trim().toLowerCase();
 
   let bgClass = "bg-white/10";
