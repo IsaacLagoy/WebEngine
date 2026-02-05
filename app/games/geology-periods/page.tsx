@@ -20,12 +20,15 @@ export default function GamesPage() {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
 
   const updateValue = (answer: string, v: string) => {
     setValues((prev) => ({ ...prev, [answer]: v }));
   };
 
-  const allComplete = Object.values(values).every((v) => v.trim().length > 0);
+  const allCorrect = ALL_ANSWERS.every(
+    (answer) => values[answer]?.trim().toLowerCase() === answer.trim().toLowerCase()
+  );
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -34,8 +37,11 @@ export default function GamesPage() {
   }, [timerRunning]);
 
   useEffect(() => {
-    if (timerRunning && allComplete) setTimerRunning(false);
-  }, [timerRunning, allComplete]);
+    if (timerRunning && allCorrect) {
+      setTimerRunning(false);
+      setShowCompletionPopup(true);
+    }
+  }, [timerRunning, allCorrect]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -54,7 +60,7 @@ export default function GamesPage() {
                   setTimerRunning(true);
                 }
               }}
-              disabled={timerRunning || allComplete}
+              disabled={timerRunning || allCorrect}
               className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-md bg-white/20 text-white hover:bg-white/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Start Timer
@@ -174,6 +180,30 @@ export default function GamesPage() {
           </Glass>
         </section>
       </div>
+
+      {/* Completion popup */}
+      {showCompletionPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowCompletionPopup(false)}
+        >
+          <div
+            className="bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-xl px-8 py-6 text-center max-w-sm mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Complete!</h2>
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
+              Your time: <span className="font-mono font-bold text-slate-900 dark:text-white">{formatTime(elapsedSeconds)}</span>
+            </p>
+            <button
+              onClick={() => setShowCompletionPopup(false)}
+              className="px-4 py-2 rounded-md bg-white/20 text-slate-800 dark:text-white hover:bg-white/30 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
