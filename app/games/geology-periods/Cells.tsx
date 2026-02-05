@@ -45,6 +45,7 @@ export function Cell({
         onChange={(e) => setValue(e.target.value)}
         className={`h-full w-full shadow-inner rounded-md px-1 sm:px-2 md:px-3 text-white text-xs sm:text-sm outline-none ${bgClass} placeholder-white/50`}
         placeholder="Type here"
+        autoComplete="off"
       />
     </div>
   );

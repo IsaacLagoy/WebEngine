@@ -26,19 +26,19 @@ export default function GamesPage() {
         {/* Chart */}
         <section className="flex justify-center">
           <Glass className="p-2 sm:p-4 md:p-6 lg:p-10 max-w-[800px] w-full">
-            <div className="grid grid-cols-5 gap-0.5">
+            <div className="grid grid-cols-6 gap-0.5">
 
               {/* EONS */}
-              <div className="col-span-1 grid grid-rows-22 gap-0.5">
+              <div className="col-span-1 grid grid-rows-23 gap-0.5">
                 <HeaderCell>Eons</HeaderCell>
                 <Cell answer="Phanerozoic" reveal={reveal} span={17} />
-                <Cell answer="Proterozoic" reveal={reveal} span={1} />
+                <Cell answer="Proterozoic" reveal={reveal} span={2} />
                 <Cell answer="Archean" reveal={reveal} span={1} />
                 <Cell answer="Hadean" reveal={reveal} span={1} />
               </div>
 
               {/* ERAS */}
-              <div className="col-span-1 grid grid-rows-22 gap-0.5">
+              <div className="col-span-1 grid grid-rows-23 gap-0.5">
                 <HeaderCell>Eras</HeaderCell>
                 <Cell answer="Cenozoic" reveal={reveal} span={7} />
                 <Cell answer="Mesozoic" reveal={reveal} span={3} />
@@ -46,11 +46,20 @@ export default function GamesPage() {
               </div>
 
               {/* PERIODS */}
-              <div className="col-span-2 grid grid-rows-22 gap-0.5">
+              <div className="col-span-2 grid grid-rows-23 gap-0.5">
                 <HeaderCell>Periods</HeaderCell>
                 <Cell answer="Quaternary" reveal={reveal} span={2} />
-                <Cell answer="Neogene" reveal={reveal} span={2} />
-                <Cell answer="Paleogene" reveal={reveal} span={3} />
+
+                <div className="row-span-5">
+                  <div className="grid grid-cols-2 h-full gap-1">
+                    <div className="grid grid-rows-5 gap-1 h-full">
+                      <Cell answer="Neogene" reveal={reveal} span={2}/>
+                      <Cell answer="Paleogene" reveal={reveal} span={3}/>
+                    </div>
+                    <Cell answer="Tertiary" reveal={reveal} />
+                  </div>
+                </div>
+
                 <Cell answer="Cretaceous" reveal={reveal} span={1} />
                 <Cell answer="Jurassic" reveal={reveal} span={1} />
                 <Cell answer="Triassic" reveal={reveal} span={1} />
@@ -71,10 +80,11 @@ export default function GamesPage() {
                 <Cell answer="Silurian" reveal={reveal} span={1} />
                 <Cell answer="Ordovician" reveal={reveal} span={1} />
                 <Cell answer="Cambrian" reveal={reveal} span={1} />
+                <Cell answer="Ediacaran" reveal={reveal} span={1} />
               </div>
 
               {/* EPOCHS */}
-              <div className="col-span-1 grid grid-rows-22 gap-0.5">
+              <div className="col-span-1 grid grid-rows-23 gap-0.5">
                 <HeaderCell>Epochs</HeaderCell>
                 <Cell answer="Holocene" reveal={reveal} span={1} />
                 <Cell answer="Pleistocene" reveal={reveal} span={1} />
@@ -83,6 +93,31 @@ export default function GamesPage() {
                 <Cell answer="Oligocene" reveal={reveal} span={1} />
                 <Cell answer="Eocene" reveal={reveal} span={1} />
                 <Cell answer="Paleocene" reveal={reveal} span={1} />
+              </div>
+
+              <div className="col-span-1 grid grid-rows-23 gap-0.5">
+                <HeaderCell>Dates (Ma)</HeaderCell>
+                <Cell answer="0.012" reveal={reveal} span={1} />
+                <Cell answer="2.6" reveal={reveal} span={1} />
+                <Cell answer="5.3" reveal={reveal} span={1} />
+                <Cell answer="23.0" reveal={reveal} span={1} />
+                <Cell answer="33.9" reveal={reveal} span={1} />
+                <Cell answer="55.8" reveal={reveal} span={1} />
+                <Cell answer="66" reveal={reveal} span={1} />
+                <Cell answer="146" reveal={reveal} span={1} />
+                <Cell answer="200" reveal={reveal} span={1} />
+                <Cell answer="252" reveal={reveal} span={1} />
+                <Cell answer="299" reveal={reveal} span={1} />
+                <Cell answer="318" reveal={reveal} span={1} />
+                <Cell answer="359" reveal={reveal} span={1} />
+                <Cell answer="416" reveal={reveal} span={1} />
+                <Cell answer="444" reveal={reveal} span={1} />
+                <Cell answer="488" reveal={reveal} span={1} />
+                <Cell answer="541" reveal={reveal} span={1} />
+                <Cell answer="635" reveal={reveal} span={1} />
+                <Cell answer="2500" reveal={reveal} span={1} />
+                <Cell answer="4000" reveal={reveal} span={1} />
+                <Cell answer="4600" reveal={reveal} span={1} />
               </div>
 
             </div>

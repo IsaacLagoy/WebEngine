@@ -140,7 +140,7 @@ export default function RootLayout({
           <div className="fixed inset-0 z-0 w-screen h-screen">
             <CampScene />
           </div>
-          <IdleWrapper idleTimeoutSeconds={30}>
+          <IdleWrapper idleTimeoutSeconds={300}>
             <Header />
             <div className="relative z-10">{children}</div>
           </IdleWrapper>
