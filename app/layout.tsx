@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import CampScene from "./components/CampScene";
-import IdleWrapper from "./components/IdleWrapper";
-import Header from "./components/Header";
 import { AuthProvider } from "./components/auth/AuthContext";
+import RootShell from "./components/RootShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -137,13 +135,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${kanit.variable}`}>
         <AuthProvider>
-          <div className="fixed inset-0 z-0 w-screen h-screen">
-            <CampScene />
-          </div>
-          <IdleWrapper idleTimeoutSeconds={300}>
-            <Header />
-            <div className="relative z-10">{children}</div>
-          </IdleWrapper>
+          <RootShell>{children}</RootShell>
         </AuthProvider>
       </body>
     </html>

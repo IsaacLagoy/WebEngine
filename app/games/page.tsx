@@ -14,6 +14,13 @@ interface Project {
 
 const projects: Project[] = [
   {
+    id: "matrix-stack",
+    title: "Matrix Stack",
+    description: "See how the matrix stack works in a 2D canvas.",
+    image: "/images/assets/matrix_stack.png",
+    href: "/games/matrix-stack",
+  },
+  {
     id: "geologic-time-periods",
     title: "Geologic Time Periods",
     description: "Test your knowledge of geologic time periods.",
