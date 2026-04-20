@@ -67,10 +67,7 @@ export default function IndepenDanceDayPage() {
           . This was the first game created using our engine-focused paradigm, where we deliberately kept the game's code completely separate from the engine's code.
         </p>
         <p>
-          This separation was crucial—it allowed us to package Basilisk Engine as a standalone Python package after the semester, making it available for others to use. The clean architecture demonstrated that Basilisk could be used as a proper game engine, not just a one-off project.
-        </p>
-        <p>
-          The game's success in winning the Fall 2024 Best in Game Design Award validated this approach and set the foundation for future Basilisk Engine games.
+          This separation allowed us to package Basilisk Engine as a standalone Python package after the semester, making it available for others to use. The clean architecture demonstrated that Basilisk could be used as a proper game engine, not just a one-off project.
         </p>
       </ContentSection>
     </ProjectPageLayout>

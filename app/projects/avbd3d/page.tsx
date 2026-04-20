@@ -15,7 +15,7 @@ export default function AVBD3DPage() {
     },
     {
       title: "GJK/EPA Collision Detection",
-      description: "Advanced collision pipeline using Gilbert-Johnson-Keerthi and Expanding Polytope Algorithm for accurate contact generation.",
+      description: "In-progress collision pipeline using Gilbert-Johnson-Keerthi and Expanding Polytope Algorithm for good-enough contact generation.",
     },
     {
       title: "Configurable Debug Visualization",
@@ -24,15 +24,7 @@ export default function AVBD3DPage() {
     {
       title: "Basilisk Engine Compatible",
       description: "Designed with compatibility in mind for the future C++ version of Basilisk Engine using modern rendering libraries.",
-    },
-    {
-      title: "Custom Rendering Pipeline",
-      description: "OpenGL-based renderer using GLFW, GLAD, GLM, STB, and ASSIMP for robust 3D visualization.",
-    },
-    {
-      title: "Research Implementation",
-      description: "Based on cutting-edge research from SIGGRAPH 2025, implementing state-of-the-art physics simulation techniques.",
-    },
+    }
   ];
 
   return (
@@ -58,10 +50,7 @@ export default function AVBD3DPage() {
 
       <ContentSection title="About the Project">
         <p>
-          AVBD 3D is an ongoing research implementation that extends the Augmented Vertex Block Descent algorithm from 2D to 3D. Based on the public 2D demo from the University of Utah and Roblox's collaborative research, this project explores the challenges and opportunities of bringing this advanced physics simulation technique into three-dimensional space.
-        </p>
-        <p>
-          The project is currently in active development as I work through understanding the intricacies of AVBD and debugging the 3D implementation. This is a learning journey through cutting-edge physics simulation research published at SIGGRAPH 2025.
+          AVBD 3D is an ongoing implementation that extends the Augmented Vertex Block Descent algorithm from 2D to 3D. Based on the public 2D demo from the University of Utah and Roblox's collaborative research. The project is currently in active development as I work through understanding the intricacies of AVBD and debugging the 3D implementation. 
         </p>
       </ContentSection>
 

@@ -79,10 +79,7 @@ export default function EmulsionPage() {
           . Competing against teams using established engines like Godot, Unreal, and Unity, Emulsion proved that a Python-based engine could not only compete but excel.
         </p>
         <p>
-          Winning 2nd place at Chillennium 2025—a competition with over 50 teams—demonstrated that Basilisk Engine was more than just a proof of concept. It was a viable tool for creating polished, competitive games.
-        </p>
-        <p>
-          This achievement validated the team's vision of making game development accessible through Python while maintaining the performance and capabilities needed for real-time 3D graphics.
+          Winning 2nd place at Chillennium 2025, a competition with over 50 teams, demonstrated that Basilisk Engine was more than just a proof of concept. It was a viable tool for creating polished, competitive games.
         </p>
       </ContentSection>
 

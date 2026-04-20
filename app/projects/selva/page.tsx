@@ -17,15 +17,7 @@ export default function SelvaPage() {
     {
       title: "Unique Shaders",
       description: "Every memory has its own custom shader, creating distinct visual experiences that are integral to gameplay.",
-    },
-    {
-      title: "Shader-Based Puzzles",
-      description: "Solve puzzles by weaving in and out of visual effects. The shaders aren't just cosmetic—they're part of the challenge.",
-    },
-    {
-      title: "Rich Mechanics",
-      description: "Features the most mechanics and shaders of any Basilisk Engine game, showcasing the engine's capabilities.",
-    },
+    }
   ];
 
   const concepts = [
@@ -72,13 +64,7 @@ export default function SelvaPage() {
           <Link href="/projects/basilisk" className="text-white underline hover:text-white/80">
             Basilisk Engine
           </Link>
-          . As always, it was created using the engine, but Selva pushed the boundaries of what was possible.
-        </p>
-        <p>
-          The game features an unprecedented number of custom shaders, each carefully crafted to create unique visual experiences. These aren't just visual effects—each shader is integrated into the gameplay, creating puzzles that require players to understand and interact with the visual distortions.
-        </p>
-        <p>
-          With more mechanics and shaders than any previous Basilisk Engine game, Selva demonstrates the engine's growing maturity and the team's ability to create increasingly complex and polished experiences.
+          . As always, it was created using the engine, but Selva pushed the boundaries of what was possible. With more mechanics and shaders than any previous Basilisk Engine game, Selva demonstrates the engine's growing maturity and the team's ability to create increasingly complex and polished experiences.
         </p>
       </ContentSection>
 

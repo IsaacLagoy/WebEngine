@@ -445,6 +445,7 @@ export default function TransformVisualizer(): JSX.Element {
   const [canvasDisplaySize, setCanvasDisplaySize] = useState<number>(512);
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
@@ -458,10 +459,19 @@ export default function TransformVisualizer(): JSX.Element {
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      setCanvasDisplaySize(Math.floor(Math.max(width, height)));
+      setCanvasDisplaySize(Math.floor(isMobile ? width : Math.max(width, height)));
     });
     observer.observe(el);
     return () => observer.disconnect();
+  }, [isMobile]); // was [], now depends on isMobile
+
+  // Detect mobile breakpoint
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   const shapesRef = useRef<Shape[]>([]);
@@ -490,8 +500,8 @@ export default function TransformVisualizer(): JSX.Element {
     }
   }, []);
 
-  useEffect(() => { run(code, panOffset); }, [code, run]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { redraw(panOffset); }, [panOffset, redraw]);
+  useEffect(() => { run(code, panOffset); }, [code, run, canvasDisplaySize]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { redraw(panOffset); }, [panOffset, redraw, canvasDisplaySize])
 
   // ── Drag to pan ──
   const handleMouseDown = (e: React.MouseEvent): void => {
@@ -572,219 +582,376 @@ export default function TransformVisualizer(): JSX.Element {
         ref={containerRef}
         style={{
           display: "flex", height: "100vh", width: "100%",
+          flexDirection: isMobile ? "column" : "row",
           background: "#0d1117", color: "#e2e8f0",
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
           overflow: "hidden",
           cursor: isSplitting.current ? "col-resize" : "default",
         }}>
-      {/* ── Left: Editor ── */}
-      <div style={{
-        width: `${splitPct}%`, display: "flex", flexDirection: "column", flexShrink: 0,
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "12px 18px", background: "#0d1117",
-          borderBottom: "1px solid #1e2a3a",
-          display: "flex", alignItems: "center", gap: 10,
-        }}>
-          <Link
-            href="/games"
-            className="back-button"
-            style={{
-              fontSize: 12,
-              letterSpacing: 1,
-              padding: "4px 8px",
-              margin: "-5px",
-              border: "1px solid #1e2a3a",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span style={{ fontSize: 12 }}>←</span>
-            <span>Back to games</span>
-          </Link>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8, fontSize: 11, color: "#4b6280" }}>
-            <span style={{ color: error ? "#f87171" : "#34d399" }}>
-              {error ? "● ERR" : `● OK  ${shapeCount} shape${shapeCount !== 1 ? "s" : ""}`}
-            </span>
-          </div>
-        </div>
-
-        {/* Quick reference */}
-        <div style={{
-          padding: "8px 18px", background: "#0a0f16",
-          borderBottom: "1px solid #1e2a3a",
-          fontSize: 10, color: "#3d5268", lineHeight: 1.8,
-          display: "flex", gap: 16, flexWrap: "wrap",
-        }}>
-          {(["push", "pop", "translate(x,y)", "scale(x,y)", "rotate(rad)", "drawSquare()", "for i in range(n)", "end", "pi", "sin(x)", "cos(x)"] as const).map((k) => (
-            <code
-              key={k}
+      {isMobile ? (
+        <>
+          {/* ── Mobile: Canvas on top ── */}
+          <div style={{ height: "45vh", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            <div style={{
+              padding: "8px 18px", background: "#0d1117",
+              borderBottom: "1px solid #1e2a3a",
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <Link
+                href="/games"
+                className="back-button"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: 1,
+                  padding: "4px 8px",
+                  margin: "-5px",
+                  border: "1px solid #1e2a3a",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12 }}>←</span>
+                <span>Back to games</span>
+              </Link>
+              <span style={{ fontSize: 12, color: "#4b6280", letterSpacing: 1, marginLeft: 8 }}>VIEWPORT</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: error ? "#f87171" : "#34d399" }}>
+                {error ? "● ERR" : `● OK  ${shapeCount} shape${shapeCount !== 1 ? "s" : ""}`}
+              </span>
+            </div>
+            <div
+              ref={viewportRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
               style={{
-                color: k.startsWith("for") || k === "end" || k === "push" || k === "pop"
-                  ? "#a78bfa"
-                  : k === "pi"
-                    ? "#fbbf24"
-                    : "#38bdf8",
+                flex: 1, position: "relative",
+                background: "#060b10", overflow: "hidden",
+                cursor: isDragging ? "grabbing" : "grab",
+                userSelect: "none",
               }}
-            >{k}</code>
-          ))}
-        </div>
-
-        {/* Editor */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {/* Line numbers */}
-          <div style={{
-            position: "absolute", left: 0, top: 0, bottom: 0, width: 40,
-            background: "#0a0f16", borderRight: "1px solid #1e2a3a",
-            display: "flex", flexDirection: "column", alignItems: "flex-end",
-            padding: "12px 8px 12px 0", gap: 0, overflowY: "hidden",
-            zIndex: 2, pointerEvents: "none",
-          }}>
-            {code.split("\n").map((_: string, i: number) => (
-              <div key={i} style={{
-                fontSize: 12, lineHeight: "20px", color: "#2d4a60",
-                minHeight: 20, userSelect: "none",
-              }}>{i + 1}</div>
-            ))}
-          </div>
-
-          {/* Syntax highlight layer */}
-          <div
-            ref={highlightRef}
-            aria-hidden="true"
-            style={{
-              position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
-              padding: "12px 16px",
-              fontSize: 12, lineHeight: "20px",
-              whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
-              pointerEvents: "none", zIndex: 1,
-              color: "#e2e8f0",
-            }}
-            dangerouslySetInnerHTML={{ __html: highlight(code) }}
-          />
-
-          {/* Editable textarea */}
-          <textarea
-            ref={textareaRef}
-            value={code}
-            onChange={handleChange}
-            onScroll={syncScroll}
-            onKeyDown={handleKeyDown}
-            spellCheck={false}
-            style={{
-              position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
-              padding: "12px 16px",
-              fontSize: 12, lineHeight: "20px",
-              background: "transparent", color: "transparent",
-              caretColor: "#60a5fa",
-              border: "none", outline: "none", resize: "none",
-              whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
-              zIndex: 3, fontFamily: "inherit",
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ── Splitter handle ── */}
-      <div
-        onMouseDown={handleSplitterMouseDown}
-        style={{
-          width: 5, flexShrink: 0,
-          background: "#1e2a3a",
-          cursor: "col-resize",
-          position: "relative",
-          transition: "background 0.15s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "#2d4a60")}
-        onMouseLeave={e => (e.currentTarget.style.background = "#1e2a3a")}
-      >
-        {/* Grip dots */}
-        <div style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          display: "flex", flexDirection: "column", gap: 3,
-          pointerEvents: "none",
-        }}>
-          {[0,1,2].map(n => (
-            <div key={n} style={{ width: 3, height: 3, borderRadius: "50%", background: "#4b6280" }} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Right: Canvas ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{
-          padding: "12px 18px", background: "#0d1117",
-          borderBottom: "1px solid #1e2a3a",
-          display: "flex", alignItems: "center", gap: 10,
-        }}>
-          <span style={{ fontSize: 12, color: "#4b6280", letterSpacing: 1 }}>VIEWPORT</span>
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "#4b6280" }}>
-            {CANVAS_RES}×{CANVAS_RES}px · MV stack · 2D canvas
-          </span>
-        </div>
-
-        {/* Viewport container — square canvas centred inside */}
-        <div
-          ref={viewportRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          style={{
-            flex: 1, position: "relative",
-            background: "#060b10", overflow: "hidden",
-            cursor: isDragging ? "grabbing" : "grab",
-            userSelect: "none",
-          }}
-        >
-          <div style={{
-            position: "absolute",
-            top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: canvasDisplaySize, height: canvasDisplaySize,
-            flexShrink: 0,
-          }}>
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_RES}
-              height={CANVAS_RES}
-              style={{
-                width: canvasDisplaySize,
-                height: canvasDisplaySize,
-                display: error ? "none" : "block",
-                imageRendering: "pixelated",
-              }}
-            />
-            {error && (
+            >
               <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                padding: 40, gap: 16,
+                position: "absolute",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: canvasDisplaySize, height: canvasDisplaySize,
+                flexShrink: 0,
               }}>
-                <div style={{ fontSize: 28, color: "#f87171", marginBottom: 4 }}>⚠</div>
-                <div style={{
-                  fontSize: 13, color: "#f87171", fontWeight: "bold",
-                  letterSpacing: 2, textTransform: "uppercase", marginBottom: 8,
-                }}>Runtime Error</div>
-                <div style={{
-                  fontSize: 12, color: "#fca5a5",
-                  background: "#1a0808", border: "1px solid #7f1d1d",
-                  borderRadius: 6, padding: "12px 20px",
-                  maxWidth: 360, textAlign: "center", lineHeight: 1.7,
-                }}>{error}</div>
-                <div style={{ fontSize: 11, color: "#4b6280", marginTop: 8 }}>
-                  Fix the code on the left to resume rendering
-                </div>
+                <canvas
+                  ref={canvasRef}
+                  width={CANVAS_RES}
+                  height={CANVAS_RES}
+                  style={{
+                    width: canvasDisplaySize,
+                    height: canvasDisplaySize,
+                    display: error ? "none" : "block",
+                    imageRendering: "pixelated",
+                  }}
+                />
+                {error && (
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    padding: 24, gap: 12,
+                  }}>
+                    <div style={{ fontSize: 24, color: "#f87171" }}>⚠</div>
+                    <div style={{
+                      fontSize: 12, color: "#f87171", fontWeight: "bold",
+                      letterSpacing: 2, textTransform: "uppercase",
+                    }}>Runtime Error</div>
+                    <div style={{
+                      fontSize: 11, color: "#fca5a5",
+                      background: "#1a0808", border: "1px solid #7f1d1d",
+                      borderRadius: 6, padding: "10px 16px",
+                      maxWidth: 300, textAlign: "center", lineHeight: 1.7,
+                    }}>{error}</div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* ── Mobile: Editor on bottom ── */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            {/* Quick reference — hidden on mobile to save space */}
+            <div style={{
+              padding: "6px 18px", background: "#0a0f16",
+              borderBottom: "1px solid #1e2a3a",
+              fontSize: 10, color: "#3d5268", lineHeight: 1.8,
+              display: "none",
+            }} />
+
+            {/* Editor */}
+            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+              {/* Line numbers */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, bottom: 0, width: 40,
+                background: "#0a0f16", borderRight: "1px solid #1e2a3a",
+                display: "flex", flexDirection: "column", alignItems: "flex-end",
+                padding: "12px 8px 12px 0", gap: 0, overflowY: "hidden",
+                zIndex: 2, pointerEvents: "none",
+              }}>
+                {code.split("\n").map((_: string, i: number) => (
+                  <div key={i} style={{
+                    fontSize: 12, lineHeight: "20px", color: "#2d4a60",
+                    minHeight: 20, userSelect: "none",
+                  }}>{i + 1}</div>
+                ))}
+              </div>
+
+              {/* Syntax highlight layer */}
+              <div
+                ref={highlightRef}
+                aria-hidden="true"
+                style={{
+                  position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
+                  padding: "12px 16px",
+                  fontSize: 12, lineHeight: "20px",
+                  whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
+                  pointerEvents: "none", zIndex: 1,
+                  color: "#e2e8f0",
+                }}
+                dangerouslySetInnerHTML={{ __html: highlight(code) }}
+              />
+
+              {/* Editable textarea */}
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={handleChange}
+                onScroll={syncScroll}
+                onKeyDown={handleKeyDown}
+                spellCheck={false}
+                style={{
+                  position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
+                  padding: "12px 16px",
+                  fontSize: 12, lineHeight: "20px",
+                  background: "transparent", color: "transparent",
+                  caretColor: "#60a5fa",
+                  border: "none", outline: "none", resize: "none",
+                  whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
+                  zIndex: 3, fontFamily: "inherit",
+                }}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* ── Desktop: Left Editor ── */}
+          <div style={{
+            width: `${splitPct}%`, display: "flex", flexDirection: "column", flexShrink: 0,
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: "12px 18px", background: "#0d1117",
+              borderBottom: "1px solid #1e2a3a",
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <Link
+                href="/games"
+                className="back-button"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: 1,
+                  padding: "4px 8px",
+                  margin: "-5px",
+                  border: "1px solid #1e2a3a",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12 }}>←</span>
+                <span>Back to games</span>
+              </Link>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 8, fontSize: 11, color: "#4b6280" }}>
+                <span style={{ color: error ? "#f87171" : "#34d399" }}>
+                  {error ? "● ERR" : `● OK  ${shapeCount} shape${shapeCount !== 1 ? "s" : ""}`}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick reference */}
+            <div style={{
+              padding: "8px 18px", background: "#0a0f16",
+              borderBottom: "1px solid #1e2a3a",
+              fontSize: 10, color: "#3d5268", lineHeight: 1.8,
+              display: "flex", gap: 16, flexWrap: "wrap",
+            }}>
+              {(["push", "pop", "translate(x,y)", "scale(x,y)", "rotate(rad)", "drawSquare()", "for i in range(n)", "end", "pi", "sin(x)", "cos(x)"] as const).map((k) => (
+                <code
+                  key={k}
+                  style={{
+                    color: k.startsWith("for") || k === "end" || k === "push" || k === "pop"
+                      ? "#a78bfa"
+                      : k === "pi"
+                        ? "#fbbf24"
+                        : "#38bdf8",
+                  }}
+                >{k}</code>
+              ))}
+            </div>
+
+            {/* Editor */}
+            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+              {/* Line numbers */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, bottom: 0, width: 40,
+                background: "#0a0f16", borderRight: "1px solid #1e2a3a",
+                display: "flex", flexDirection: "column", alignItems: "flex-end",
+                padding: "12px 8px 12px 0", gap: 0, overflowY: "hidden",
+                zIndex: 2, pointerEvents: "none",
+              }}>
+                {code.split("\n").map((_: string, i: number) => (
+                  <div key={i} style={{
+                    fontSize: 12, lineHeight: "20px", color: "#2d4a60",
+                    minHeight: 20, userSelect: "none",
+                  }}>{i + 1}</div>
+                ))}
+              </div>
+
+              {/* Syntax highlight layer */}
+              <div
+                ref={highlightRef}
+                aria-hidden="true"
+                style={{
+                  position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
+                  padding: "12px 16px",
+                  fontSize: 12, lineHeight: "20px",
+                  whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
+                  pointerEvents: "none", zIndex: 1,
+                  color: "#e2e8f0",
+                }}
+                dangerouslySetInnerHTML={{ __html: highlight(code) }}
+              />
+
+              {/* Editable textarea */}
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={handleChange}
+                onScroll={syncScroll}
+                onKeyDown={handleKeyDown}
+                spellCheck={false}
+                style={{
+                  position: "absolute", left: 40, right: 0, top: 0, bottom: 0,
+                  padding: "12px 16px",
+                  fontSize: 12, lineHeight: "20px",
+                  background: "transparent", color: "transparent",
+                  caretColor: "#60a5fa",
+                  border: "none", outline: "none", resize: "none",
+                  whiteSpace: "pre", overflowX: "auto", overflowY: "auto",
+                  zIndex: 3, fontFamily: "inherit",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* ── Desktop: Splitter handle ── */}
+          <div
+            onMouseDown={handleSplitterMouseDown}
+            style={{
+              width: 5, flexShrink: 0,
+              background: "#1e2a3a",
+              cursor: "col-resize",
+              position: "relative",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#2d4a60")}
+            onMouseLeave={e => (e.currentTarget.style.background = "#1e2a3a")}
+          >
+            {/* Grip dots */}
+            <div style={{
+              position: "absolute", top: "50%", left: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "flex", flexDirection: "column", gap: 3,
+              pointerEvents: "none",
+            }}>
+              {[0,1,2].map(n => (
+                <div key={n} style={{ width: 3, height: 3, borderRadius: "50%", background: "#4b6280" }} />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Desktop: Right Canvas ── */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{
+              padding: "12px 18px", background: "#0d1117",
+              borderBottom: "1px solid #1e2a3a",
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <span style={{ fontSize: 12, color: "#4b6280", letterSpacing: 1 }}>VIEWPORT</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "#4b6280" }}>
+                {CANVAS_RES}×{CANVAS_RES}px · MV stack · 2D canvas
+              </span>
+            </div>
+
+            {/* Viewport container — square canvas centred inside */}
+            <div
+              ref={viewportRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{
+                flex: 1, position: "relative",
+                background: "#060b10", overflow: "hidden",
+                cursor: isDragging ? "grabbing" : "grab",
+                userSelect: "none",
+              }}
+            >
+              <div style={{
+                position: "absolute",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: canvasDisplaySize, height: canvasDisplaySize,
+                flexShrink: 0,
+              }}>
+                <canvas
+                  ref={canvasRef}
+                  width={CANVAS_RES}
+                  height={CANVAS_RES}
+                  style={{
+                    width: canvasDisplaySize,
+                    height: canvasDisplaySize,
+                    display: error ? "none" : "block",
+                    imageRendering: "pixelated",
+                  }}
+                />
+                {error && (
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    padding: 40, gap: 16,
+                  }}>
+                    <div style={{ fontSize: 28, color: "#f87171", marginBottom: 4 }}>⚠</div>
+                    <div style={{
+                      fontSize: 13, color: "#f87171", fontWeight: "bold",
+                      letterSpacing: 2, textTransform: "uppercase", marginBottom: 8,
+                    }}>Runtime Error</div>
+                    <div style={{
+                      fontSize: 12, color: "#fca5a5",
+                      background: "#1a0808", border: "1px solid #7f1d1d",
+                      borderRadius: 6, padding: "12px 20px",
+                      maxWidth: 360, textAlign: "center", lineHeight: 1.7,
+                    }}>{error}</div>
+                    <div style={{ fontSize: 11, color: "#4b6280", marginTop: 8 }}>
+                      Fix the code on the left to resume rendering
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       </div>
       <style>{`
         .back-button {

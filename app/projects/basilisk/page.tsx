@@ -7,6 +7,12 @@ import Image from "next/image";
 export default function BasiliskPage() {
   const games = [
     {
+      name: "Crumple Quest",
+      image: "/images/projects/crumple_quest.png",
+      href: "/projects/crumpleQuest",
+      award: "TAGD Fall 2025 Best in Programming",
+    },
+    {
       name: "Selva",
       image: "/images/projects/selva.png",
       href: "/projects/selva",
@@ -35,7 +41,7 @@ export default function BasiliskPage() {
   const features = [
     {
       title: "Python Native",
-      description: "Write your entire game in Python—no need to learn C++ or other low-level languages.",
+      description: "Write your entire game in Python with the power of C++.",
     },
     {
       title: "GLSL Shaders",
@@ -166,10 +172,6 @@ export default function BasiliskPage() {
             About
           </h2>
           <div className="space-y-3 text-white/90 text-sm md:text-base leading-relaxed">
-            <p>
-              Basilisk Engine was born from a simple idea: what if you could build 3D games entirely in Python? 
-              No need to learn C++ or deal with complex build systems. Just write Python code and create amazing games.
-            </p>
             <p>
               Starting as a proof of concept during a game jam, Basilisk has grown into a full-featured engine 
               that has powered multiple award-winning games. From{" "}

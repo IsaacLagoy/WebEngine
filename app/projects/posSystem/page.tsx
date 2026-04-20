@@ -70,7 +70,7 @@ export default function POSSystemPage() {
 
       <ContentSection title="AI-Powered Ordering Assistant">
         <p>
-          One of the system's standout features is the AI chat assistant, which I designed and implemented using the OpenAI API. The assistant helps customers navigate the menu, answer questions about ingredients and options, and complete their orders—all in multiple languages. This feature makes the kiosk accessible to a broader audience and reduces the learning curve for first-time users, creating a more inclusive dining experience.
+          One of the system's standout features is the AI chat assistant, which I designed and implemented using the OpenAI API. The assistant helps customers navigate the menu, answer questions about ingredients and options, and complete their orders in multiple languages. This feature makes the kiosk accessible to a broader audience and reduces the learning curve for first-time users, creating a more inclusive dining experience.
         </p>
         <img 
           src="/images/projects/pos_ai.png" 
