@@ -28,6 +28,13 @@ const projects: Project[] = [
     href: "/projects/crumpleQuest",
   },
   {
+    id: "barnes-hut",
+    title: "Barnes-Hut Simulation",
+    description: "A simulation of the Barnes-Hut algorithm for gravitational force calculations.",
+    image: "/images/projects/barnes_hut.png",
+    href: "/projects/barnesHut",
+  },
+  {
     id: "pos-system",
     title: "Restaurant Point of Sale System",
     description: "An AI-powered POS system that manages customer orders and provides Text-to-Speech responses.",
