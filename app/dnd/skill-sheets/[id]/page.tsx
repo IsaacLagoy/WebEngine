@@ -23,6 +23,10 @@ function activeLevels(sheet: SkillSheet): string[] {
   return Array.from(allKeys).sort((a, b) => Number(a) - Number(b));
 }
 
+function normalizeEntryName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
 export default function SkillSheetDetailPage() {
   const { id } = useParams<{ id: string }>();
 
@@ -31,6 +35,7 @@ export default function SkillSheetDetailPage() {
   const [allSpells, setAllSpells]       = useState<Spell[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [selectedSpell, setSelectedSpell] = useState<Spell | null>(null);
+  const [selectedSpellLevel, setSelectedSpellLevel] = useState<number>(0);
   const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function SkillSheetDetailPage() {
   }, [id]);
 
   function handleSkillClick(skillName: string) {
-    const skillId = skillName.toLowerCase().replace(/\s+/g, "-");
+    const skillId = normalizeEntryName(skillName);
     const found = allSkills.find((s) => s.id === skillId) ?? null;
     // Fallback: if not found by ID, match by name
     setSelectedSkill(found ?? allSkills.find(
@@ -62,12 +67,31 @@ export default function SkillSheetDetailPage() {
     ) ?? null);
   }
 
-  function handleSpellClick(spellName: string) {
-    const spellId = spellName.toLowerCase().replace(/\s+/g, "-");
+  function handleSpellClick(spellName: string, level: number) {
+    const spellId = normalizeEntryName(spellName);
     const found = allSpells.find((s) => s.id === spellId) ?? null;
     setSelectedSpell(found ?? allSpells.find(
       (s) => s.name.toLowerCase() === spellName.toLowerCase()
     ) ?? null);
+    setSelectedSpellLevel(level);
+  }
+
+  function hasSkillData(skillName: string): boolean {
+    const skillId = normalizeEntryName(skillName);
+    return allSkills.some(
+      (skill) =>
+        skill.id === skillId ||
+        skill.name.trim().toLowerCase() === skillName.trim().toLowerCase()
+    );
+  }
+
+  function hasSpellData(spellName: string): boolean {
+    const spellId = normalizeEntryName(spellName);
+    return allSpells.some(
+      (spell) =>
+        spell.id === spellId ||
+        spell.name.trim().toLowerCase() === spellName.trim().toLowerCase()
+    );
   }
 
   if (loading) {
@@ -113,16 +137,23 @@ export default function SkillSheetDetailPage() {
                         Skills
                       </div>
                       <ul className="flex flex-wrap gap-2">
-                        {skills.map((skill) => (
+                        {skills.map((skill) => {
+                          const missingSkillData = !hasSkillData(skill);
+                          return (
                           <li key={skill}>
                             <button
                               onClick={() => handleSkillClick(skill)}
-                              className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-full text-white/90 text-sm transition-colors"
+                              className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                                missingSkillData
+                                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/40"
+                                  : "bg-white/10 hover:bg-white/20 text-white/90"
+                              }`}
                             >
                               {skill}
                             </button>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -133,16 +164,23 @@ export default function SkillSheetDetailPage() {
                         Spells
                       </div>
                       <ul className="flex flex-wrap gap-2">
-                        {spells.map((spell) => (
+                        {spells.map((spell) => {
+                          const missingSpellData = !hasSpellData(spell);
+                          return (
                           <li key={spell}>
                             <button
-                              onClick={() => handleSpellClick(spell)}
-                              className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded-full text-blue-200/90 text-sm transition-colors"
+                              onClick={() => handleSpellClick(spell, Number(level))}
+                              className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                                missingSpellData
+                                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/40"
+                                  : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-200/90"
+                              }`}
                             >
                               {spell}
                             </button>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -161,6 +199,7 @@ export default function SkillSheetDetailPage() {
       <SkillSpellModal
         type="spell"
         data={selectedSpell}
+        level={selectedSpellLevel}
         onClose={() => setSelectedSpell(null)}
       />
     </main>

@@ -2,6 +2,7 @@
 
 import { Skill, Spell } from "@/lib/firebase";
 import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailModal";
+import { computeSpellDamage } from "@/app/dnd/utils/spellDamage";
 
 // ------------------------------------------------------------
 // Helpers
@@ -33,7 +34,14 @@ const SPELL_FIELDS: DisplayFieldConfig[] = [
   { key: "name",        label: "Spell Name" },
   { key: "description", label: "Description" },
   { key: "cost",        label: "MP Cost" },
-  { key: "damaging",    label: "Damaging" },
+  { key: "damage",      label: "Damage" },
+  { key: "targeting",   label: "Targeting" },
+];
+
+const SPELL_FIELDS_NO_DAMAGE: DisplayFieldConfig[] = [
+  { key: "name",        label: "Spell Name" },
+  { key: "description", label: "Description" },
+  { key: "cost",        label: "MP Cost" },
   { key: "targeting",   label: "Targeting" },
 ];
 
@@ -42,15 +50,15 @@ const SPELL_FIELDS: DisplayFieldConfig[] = [
 // ------------------------------------------------------------
 
 type SkillSpellModalProps =
-  | { type: "skill"; data: Skill | null; onClose: () => void }
-  | { type: "spell"; data: Spell | null; onClose: () => void };
+  | { type: "skill"; data: Skill | null; onClose: () => void; level?: never }
+  | { type: "spell"; data: Spell | null; onClose: () => void; level?: number };
 
 // ------------------------------------------------------------
 // Component
 // ------------------------------------------------------------
 
 export default function SkillSpellModal(props: SkillSpellModalProps) {
-  const { type, data, onClose } = props;
+  const { type, data, onClose, level } = props;
   const isOpen = data !== null;
 
   if (type === "skill") {
@@ -65,13 +73,17 @@ export default function SkillSpellModal(props: SkillSpellModalProps) {
     );
   }
 
-  // Spell — flatten nested fields before passing to DetailModal
+  // Compute dice string if level is provided
+  const diceString = data && level !== undefined
+    ? computeSpellDamage(data.damaging, data.targeting, level)
+    : null;
+
   const displayData = data
     ? {
         ...data,
         cost: `${data.cost} MP`,
-        damaging: data.damaging ? "Yes" : "No",
         targeting: formatTargeting(data),
+        ...(diceString ? { damage: diceString } : {}),
       }
     : null;
 
@@ -81,7 +93,7 @@ export default function SkillSpellModal(props: SkillSpellModalProps) {
       onClose={onClose}
       title={data?.name || "Spell Details"}
       data={displayData}
-      fields={SPELL_FIELDS}
+      fields={diceString ? SPELL_FIELDS : SPELL_FIELDS_NO_DAMAGE}
     />
   );
 }

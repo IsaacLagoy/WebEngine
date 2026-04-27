@@ -77,3 +77,25 @@ export interface ClassData {
 }
 
 export type DndClass = ClassData & { id: string };
+
+// ------------------------------------------------------------
+// Race Types
+// ------------------------------------------------------------
+
+// Add these to lib/firebase.ts alongside your other types
+
+export interface RaceData {
+  name: string;
+  str: number | null;
+  con: number | null;
+  dex: number | null;
+  int: number | null;
+  wis: number | null;
+  cha: number | null;
+  skills: string[];
+  description: string;
+  rules: string | null;
+  hidden: boolean;
+}
+
+export type Race = RaceData & { id: string };

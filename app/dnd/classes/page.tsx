@@ -74,11 +74,6 @@ export default function ClassesPage() {
                     <div className="text-white font-semibold text-lg">
                       {cls.name}
                     </div>
-                    {cls.alignment && (
-                      <div className="text-white/40 text-xs hidden sm:block">
-                        {cls.alignment}
-                      </div>
-                    )}
                   </div>
                   {isAdmin && (
                     <button

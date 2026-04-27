@@ -73,15 +73,15 @@ export default function ClassDetailPage() {
         {/* Stats */}
         <Glass className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-6">
           <Stat label="Health Die" value={cls.health} />
-          <Stat label="Starting Mana" value={String(cls.mana)} />
-          <Stat label="Starting Skills" value={String(cls.skills)} />
+          <Stat label="Mana Per Level" value={String(cls.mana)} />
+          <Stat label="Skills Per Level" value={String(cls.skills)} />
           <Stat
             label="THAC0"
-            value={`${cls.thac0[0]}, −${cls.thac0[1]} per tier`}
+            value={`Starts at ${cls.thac0[0]}, −1 per ${cls.thac0[1]} levels`}
           />
           <Stat
             label="AC"
-            value={`${cls.ac[0]}, −${cls.ac[1]} per tier`}
+            value={`Starts at ${cls.ac[0]}, −1 per ${cls.ac[1]} levels`}
           />
           {cls.alignment && (
             <Stat label="Alignment" value={cls.alignment} />

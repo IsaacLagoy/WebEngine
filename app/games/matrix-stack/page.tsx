@@ -598,7 +598,7 @@ export default function TransformVisualizer() {
               display: "flex", alignItems: "center", gap: 10,
             }}>
               <Link
-                href="/games"
+                href="/projects"
                 className="back-button"
                 style={{
                   fontSize: 12,
@@ -613,7 +613,7 @@ export default function TransformVisualizer() {
                 }}
               >
                 <span style={{ fontSize: 12 }}>←</span>
-                <span>Back to games</span>
+                <span>Back to projects</span>
               </Link>
               <span style={{ fontSize: 12, color: "#4b6280", letterSpacing: 1, marginLeft: 8 }}>VIEWPORT</span>
               <span style={{ marginLeft: "auto", fontSize: 11, color: error ? "#f87171" : "#34d399" }}>
@@ -753,7 +753,7 @@ export default function TransformVisualizer() {
               display: "flex", alignItems: "center", gap: 10,
             }}>
               <Link
-                href="/games"
+                href="/projects"
                 className="back-button"
                 style={{
                   fontSize: 12,
@@ -768,7 +768,7 @@ export default function TransformVisualizer() {
                 }}
               >
                 <span style={{ fontSize: 12 }}>←</span>
-                <span>Back to games</span>
+                <span>Back to projects</span>
               </Link>
               <div style={{ marginLeft: "auto", display: "flex", gap: 8, fontSize: 11, color: "#4b6280" }}>
                 <span style={{ color: error ? "#f87171" : "#34d399" }}>

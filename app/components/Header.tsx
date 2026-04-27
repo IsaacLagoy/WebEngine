@@ -37,7 +37,6 @@ export default function Header() {
           <HeaderLink href="/">Home</HeaderLink>
           <HeaderLink href="/projects">Projects</HeaderLink>
           <HeaderLink href="/experience">Experience</HeaderLink>
-          <HeaderLink href="/games">Games</HeaderLink>
           <HeaderLink href="/dnd">D&amp;D</HeaderLink>
           <AuthButton />
         </nav>

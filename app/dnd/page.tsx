@@ -5,9 +5,20 @@ import Link from "next/link";
 
 const SECTIONS = [
   {
+    href: "https://docs.google.com/document/d/1Nl7M05CE57KXw6QNjNrDS-5E6uKVaryZsamc3JPRMuA/edit?usp=sharing",
+    label: "Rule Book",
+    description: "This is the very incomplete rule book for my homebrew",
+    newTab: true,
+  },
+  {
     href: "/dnd/classes",
     label: "Classes",
     description: "Browse playable classes, stats, and alignments"
+  },
+  {
+    href: "/dnd/races",
+    label: "Races",
+    description: "Browse playable races and their stats",
   },
   {
     href: "/dnd/skill-sheets",
@@ -50,7 +61,12 @@ export default function DndPage() {
         <section>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {SECTIONS.map((section) => (
-              <Link key={section.href} href={section.href}>
+              <Link
+                key={section.href}
+                href={section.href}
+                target={section.newTab ? "_blank" : undefined}
+                rel={section.newTab ? "noopener noreferrer" : undefined}
+              >
                 <Glass className="p-6 h-full hover:bg-white/10 transition-colors cursor-pointer group">
                   <div className="flex flex-col gap-3">
                     <div>

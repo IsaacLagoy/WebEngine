@@ -1,11 +1,11 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, type MouseEventHandler, type ReactNode } from "react";
 
 interface GlassProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  onClick?: () => void;
+  onClick?: MouseEventHandler<HTMLDivElement>;
 }
 
 const Glass = forwardRef<HTMLDivElement, GlassProps>(
