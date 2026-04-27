@@ -438,7 +438,7 @@ const UNITS_VISIBLE = 5; // world units from center to each edge
 const WORLD_SCALE = CANVAS_RES / (UNITS_VISIBLE * 2);
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function TransformVisualizer(): JSX.Element {
+export default function TransformVisualizer() {
   const [code, setCode] = useState<string>(INITIAL_CODE);
   const [error, setError] = useState<string | null>(null);
   const [shapeCount, setShapeCount] = useState<number>(0);

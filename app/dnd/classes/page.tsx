@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { DndClass, ClassData, readCollection, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 
 export default function ClassesPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const trail = searchParams.get("trail");
+  const [trail, setTrail] = useState<string | null>(null);
 
   const [classes, setClasses] = useState<DndClass[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -46,6 +45,11 @@ export default function ClassesPage() {
   useEffect(() => {
     loadClasses();
   }, [loadClasses]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setTrail(params.get("trail"));
+  }, []);
 
   return (
     <main className="min-h-screen px-8 py-12">

@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { DndClass, ClassData, readCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const trail = searchParams.get("trail");
+  const [trail, setTrail] = useState<string | null>(null);
 
   const [cls, setCls] = useState<DndClass | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +26,11 @@ export default function ClassDetailPage() {
     }
     load();
   }, [id]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setTrail(params.get("trail"));
+  }, []);
 
   function handleSkillSheetClick(sheetName: string) {
     const sheetId = sheetName.toLowerCase().replace(/\s+/g, "-");
