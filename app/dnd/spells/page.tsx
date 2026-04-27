@@ -13,25 +13,16 @@ import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailMo
 
 const PAGE_SIZE = 50;
 
-function formatTargeting(spell: Spell): string {
-  if (!spell.targeting) return "—";
-  switch (spell.targeting.type) {
-    case "aoe":    return `AoE — ${spell.targeting.range}ft radius`;
-    case "cone":   return `Cone — ${spell.targeting.radius}ft`;
-    case "chain":  return `Chain — ${spell.targeting.count} targets, ${spell.targeting.range}ft range`;
+function formatTargeting(targeting: SpellData["targeting"]): string {
+  if (!targeting) return "—";
+  switch (targeting.type) {
+    case "aoe":    return `AoE — ${targeting.range}ft radius`;
+    case "cone":   return `Cone — ${targeting.radius}ft`;
+    case "chain":  return `Chain — ${targeting.count} targets, ${targeting.range}ft range`;
     case "single": return "Single target";
     case "self":   return "Self";
     default:       return "Unknown";
   }
-}
-
-function toDisplayData(spell: Spell) {
-  return {
-    ...spell,
-    cost: `${spell.cost} MP`,
-    damaging: spell.damaging ? "Yes" : "No",
-    targeting: formatTargeting(spell),
-  };
 }
 
 // ------------------------------------------------------------
@@ -90,9 +81,9 @@ const SPELL_FIELDS: FieldConfig[] = [
 const SPELL_DISPLAY_FIELDS: DisplayFieldConfig[] = [
   { key: "name",        label: "Spell Name" },
   { key: "description", label: "Description" },
-  { key: "cost",        label: "MP Cost" },
-  { key: "damaging",    label: "Damaging" },
-  { key: "targeting",   label: "Targeting" },
+  { key: "cost",        label: "MP Cost", render: (value) => `${value} MP` },
+  { key: "damaging",    label: "Damaging", render: (value) => (value ? "Yes" : "No") },
+  { key: "targeting",   label: "Targeting", render: (value) => formatTargeting(value as SpellData["targeting"]) },
 ];
 
 // ------------------------------------------------------------
@@ -159,6 +150,22 @@ export default function SpellsPage() {
     }
   }
 
+  async function handleSaveSpell(updated: SpellData, oldId: string) {
+    const newId = updated.name.toLowerCase().replace(/\s+/g, "-");
+    if (newId !== oldId) await removeFromCollection("spells", oldId);
+    await addToCollection("spells", updated, newId);
+    await loadSpells();
+    setSelectedSpell({ ...updated, id: newId });
+  }
+
+  function normalizeUpdatedSpell(updated: SpellData): SpellData {
+    return {
+      ...updated,
+      cost: Number(updated.cost),
+      damaging: updated.damaging === true || String(updated.damaging) === "true",
+    };
+  }
+
   const handleSpellClick = (spell: Spell) => {
     setSelectedSpell(spell);
     setIsDetailModalOpen(true);
@@ -220,7 +227,7 @@ export default function SpellsPage() {
                       )}
                       {spell.targeting && (
                         <div className="text-white/40 text-xs">
-                          {formatTargeting(spell)}
+                          {formatTargeting(spell.targeting)}
                         </div>
                       )}
                     </div>
@@ -275,12 +282,18 @@ export default function SpellsPage() {
         fields={SPELL_FIELDS}
       />
 
-      <DetailModal
+      <DetailModal<SpellData>
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         title={selectedSpell?.name || "Spell Details"}
-        data={selectedSpell ? toDisplayData(selectedSpell) : null}
+        data={selectedSpell}
         fields={SPELL_DISPLAY_FIELDS}
+        editFields={isAdmin ? SPELL_FIELDS : undefined}
+        onSave={
+          isAdmin && selectedSpell
+            ? async (updated) => handleSaveSpell(normalizeUpdatedSpell(updated), selectedSpell.id)
+            : undefined
+        }
       />
     </main>
   );

@@ -92,6 +92,14 @@ export default function SkillsPage() {
     }
   }
 
+  async function handleSaveSkill(updated: SkillData, oldId: string) {
+    const newId = updated.name.toLowerCase().replace(/\s+/g, "-");
+    if (newId !== oldId) await removeFromCollection("skills", oldId);
+    await addToCollection("skills", updated, newId);
+    await loadSkills();
+    setSelectedSkill({ ...updated, id: newId });
+  }
+
   const handleSkillClick = (skill: Skill) => {
     setSelectedSkill(skill);
     setIsDetailModalOpen(true);
@@ -189,6 +197,8 @@ export default function SkillsPage() {
         title={selectedSkill?.name || "Skill Details"}
         data={selectedSkill}
         fields={SKILL_DISPLAY_FIELDS}
+        editFields={isAdmin ? SKILL_FIELDS : undefined}
+        onSave={isAdmin ? (updated) => handleSaveSkill(updated, selectedSkill!.id) : undefined}
       />
     </main>
   );
