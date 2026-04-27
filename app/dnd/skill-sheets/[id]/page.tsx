@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   Skill, SkillData,
   Spell, SpellData,
   SkillSheet, SkillSheetData,
   readCollection,
+  addToCollection,
 } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 import SkillSpellModal from "@/app/dnd/components/SkillSpellModal";
+import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
 
 function levelLabel(level: string): string {
   return level === "0" ? "Starting Skills" : `Level ${level}`;
@@ -29,6 +31,7 @@ function normalizeEntryName(name: string): string {
 
 export default function SkillSheetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const isAdmin = useIsAdmin();
 
   const [sheet, setSheet]               = useState<SkillSheet | null>(null);
   const [allSkills, setAllSkills]       = useState<Skill[]>([]);
@@ -36,6 +39,9 @@ export default function SkillSheetDetailPage() {
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [selectedSpell, setSelectedSpell] = useState<Spell | null>(null);
   const [selectedSpellLevel, setSelectedSpellLevel] = useState<number>(0);
+  const [newSkillByLevel, setNewSkillByLevel] = useState<Record<string, string>>({});
+  const [newSpellByLevel, setNewSpellByLevel] = useState<Record<string, string>>({});
+  const [savingLevel, setSavingLevel] = useState<string | null>(null);
   const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
@@ -94,6 +100,64 @@ export default function SkillSheetDetailPage() {
     );
   }
 
+  async function saveSheetEdits(nextSheetData: SkillSheetData, level: string) {
+    if (!sheet) return;
+    setSavingLevel(level);
+    try {
+      await addToCollection("skillSheets", nextSheetData, sheet.id);
+      setSheet({
+        id: sheet.id,
+        ...nextSheetData,
+      });
+    } catch (err: any) {
+      console.error("Error saving skill sheet:", err);
+      if (err?.code === "permission-denied") {
+        alert("Permission denied. Please sign in as admin to edit skill sheets.");
+      }
+    } finally {
+      setSavingLevel(null);
+    }
+  }
+
+  async function removeEntry(level: string, field: "skills" | "spells", index: number) {
+    if (!sheet) return;
+    const currentEntries = field === "skills"
+      ? (sheet.skills[level] ?? [])
+      : (sheet.spells[level] ?? []);
+    const nextEntries = currentEntries.filter((_, i) => i !== index);
+    const nextSheetData: SkillSheetData = {
+      name: sheet.name,
+      skills: field === "skills" ? { ...sheet.skills, [level]: nextEntries } : sheet.skills,
+      spells: field === "spells" ? { ...sheet.spells, [level]: nextEntries } : sheet.spells,
+    };
+    await saveSheetEdits(nextSheetData, level);
+  }
+
+  async function addEntry(level: string, field: "skills" | "spells") {
+    if (!sheet) return;
+    const draftValue = (field === "skills" ? newSkillByLevel[level] : newSpellByLevel[level]) ?? "";
+    const entry = draftValue.trim();
+    if (!entry) return;
+
+    const currentEntries = field === "skills"
+      ? (sheet.skills[level] ?? [])
+      : (sheet.spells[level] ?? []);
+
+    const nextEntries = [...currentEntries, entry];
+    const nextSheetData: SkillSheetData = {
+      name: sheet.name,
+      skills: field === "skills" ? { ...sheet.skills, [level]: nextEntries } : sheet.skills,
+      spells: field === "spells" ? { ...sheet.spells, [level]: nextEntries } : sheet.spells,
+    };
+
+    await saveSheetEdits(nextSheetData, level);
+    if (field === "skills") {
+      setNewSkillByLevel((prev) => ({ ...prev, [level]: "" }));
+    } else {
+      setNewSpellByLevel((prev) => ({ ...prev, [level]: "" }));
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen px-8 py-12">
@@ -129,18 +193,23 @@ export default function SkillSheetDetailPage() {
                 <h2 className="text-white font-bold text-xl mb-4">
                   {levelLabel(level)}
                 </h2>
+                {isAdmin && (
+                  <div className="text-xs text-white/50 mb-3">
+                    Edit mode: add/remove skill and spell names directly for this level.
+                  </div>
+                )}
 
                 <div className="space-y-4">
-                  {skills.length > 0 && (
-                    <div>
-                      <div className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">
-                        Skills
-                      </div>
+                  <div>
+                    <div className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">
+                      Skills
+                    </div>
+                    {skills.length > 0 ? (
                       <ul className="flex flex-wrap gap-2">
-                        {skills.map((skill) => {
+                        {skills.map((skill, index) => {
                           const missingSkillData = !hasSkillData(skill);
                           return (
-                          <li key={skill}>
+                          <li key={`${skill}-${index}`} className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleSkillClick(skill)}
                               className={`px-3 py-1 rounded-full text-sm transition-colors ${
@@ -151,23 +220,62 @@ export default function SkillSheetDetailPage() {
                             >
                               {skill}
                             </button>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => removeEntry(level, "skills", index)}
+                                className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/40 transition-colors"
+                                disabled={savingLevel === level}
+                              >
+                                x
+                              </button>
+                            )}
                           </li>
                           );
                         })}
                       </ul>
-                    </div>
-                  )}
-
-                  {spells.length > 0 && (
-                    <div>
-                      <div className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">
-                        Spells
+                    ) : (
+                      <div className="text-white/40 text-sm italic">None</div>
+                    )}
+                    {isAdmin && (
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          value={newSkillByLevel[level] ?? ""}
+                          onChange={(e) =>
+                            setNewSkillByLevel((prev) => ({ ...prev, [level]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addEntry(level, "skills");
+                            }
+                          }}
+                          placeholder="Add skill by name"
+                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-white/40"
+                          disabled={savingLevel === level}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => addEntry(level, "skills")}
+                          className="px-4 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-white text-sm transition-colors"
+                          disabled={savingLevel === level}
+                        >
+                          Add
+                        </button>
                       </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">
+                      Spells
+                    </div>
+                    {spells.length > 0 ? (
                       <ul className="flex flex-wrap gap-2">
-                        {spells.map((spell) => {
+                        {spells.map((spell, index) => {
                           const missingSpellData = !hasSpellData(spell);
                           return (
-                          <li key={spell}>
+                          <li key={`${spell}-${index}`} className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleSpellClick(spell, Number(level))}
                               className={`px-3 py-1 rounded-full text-sm transition-colors ${
@@ -178,12 +286,51 @@ export default function SkillSheetDetailPage() {
                             >
                               {spell}
                             </button>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => removeEntry(level, "spells", index)}
+                                className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/40 transition-colors"
+                                disabled={savingLevel === level}
+                              >
+                                x
+                              </button>
+                            )}
                           </li>
                           );
                         })}
                       </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-white/40 text-sm italic">None</div>
+                    )}
+                    {isAdmin && (
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          value={newSpellByLevel[level] ?? ""}
+                          onChange={(e) =>
+                            setNewSpellByLevel((prev) => ({ ...prev, [level]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addEntry(level, "spells");
+                            }
+                          }}
+                          placeholder="Add spell by name"
+                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-white/40"
+                          disabled={savingLevel === level}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => addEntry(level, "spells")}
+                          className="px-4 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-white text-sm transition-colors"
+                          disabled={savingLevel === level}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Glass>
             );
