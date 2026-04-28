@@ -67,7 +67,7 @@ export const db = (() => {
         }),
       });
     }
-    return initializeFirestore(app);
+    return initializeFirestore(app, {});
   } catch {
     // If Firestore is already initialized, reuse existing instance.
     return getFirestore(app);
