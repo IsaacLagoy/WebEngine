@@ -16,6 +16,11 @@ const SECTIONS = [
     description: "Browse playable classes, stats, and alignments"
   },  
   {
+    href: "/dnd/items",
+    label: "Items",
+    description: "Browse items and their properties",
+  },
+  {
     href: "/dnd/potions",
     label: "Potions",
     description: "Potions and their effects",

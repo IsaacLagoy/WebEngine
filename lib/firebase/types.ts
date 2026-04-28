@@ -118,3 +118,26 @@ export interface PotionData {
 }
 
 export type Potion = PotionData & { id: string };
+
+// ------------------------------------------------------------
+// Item Types
+// ------------------------------------------------------------
+
+export interface EnchantmentData {
+  name: string;
+  description: string;
+  base: number;
+  linear: number;
+  exponential: number;
+  quadratic?: number;
+  form: string[];
+  type: "weapon" | "armor";
+}
+export type Enchantment = EnchantmentData & { id: string };
+
+export interface MaterialData {
+  name: string;
+  description: string;
+  modifier: number;
+}
+export type Material = MaterialData & { id: string };
