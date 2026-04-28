@@ -30,6 +30,7 @@ type Mat3 = [
 interface Shape {
   matrix: Mat3;
   color: string;
+  kind: "centered-square" | "unit-square";
 }
 
 interface InterpretResult {
@@ -283,7 +284,19 @@ function interpret(code: string): InterpretResult {
         setMV(multiplyMatrix(currentMV(), rotationMatrix(r)));
       } else if (cmd === "drawSquare") {
         if (shapes.length >= MAX_SHAPES) throw new Error(`Too many shapes (max ${MAX_SHAPES})`);
-        shapes.push({ matrix: [...currentMV()] as Mat3, color: COLORS[colorIndex % COLORS.length] });
+        shapes.push({
+          matrix: [...currentMV()] as Mat3,
+          color: COLORS[colorIndex % COLORS.length],
+          kind: "centered-square",
+        });
+        colorIndex++;
+      } else if (cmd === "drawUnitSquare") {
+        if (shapes.length >= MAX_SHAPES) throw new Error(`Too many shapes (max ${MAX_SHAPES})`);
+        shapes.push({
+          matrix: [...currentMV()] as Mat3,
+          color: COLORS[colorIndex % COLORS.length],
+          kind: "unit-square",
+        });
         colorIndex++;
       } else {
         throw new Error(`Unknown command: "${cmd}"`);
@@ -361,15 +374,21 @@ function renderShapes(
   ctx.restore();
 
   // ── Shapes ──
-  const SIZE = 1; // square is 1×1 world unit
-  const corners: [number, number][] = [
-    [-SIZE / 2, -SIZE / 2],
-    [ SIZE / 2, -SIZE / 2],
-    [ SIZE / 2,  SIZE / 2],
-    [-SIZE / 2,  SIZE / 2],
+  const centeredSquareCorners: [number, number][] = [
+    [-0.5, -0.5],
+    [0.5, -0.5],
+    [0.5, 0.5],
+    [-0.5, 0.5],
+  ];
+  const unitSquareCorners: [number, number][] = [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1],
   ];
 
-  shapes.forEach(({ matrix: m, color }: Shape, idx: number) => {
+  shapes.forEach(({ matrix: m, color, kind }: Shape, idx: number) => {
+    const corners = kind === "unit-square" ? unitSquareCorners : centeredSquareCorners;
     const pts = corners.map(([x, y]) => applyMatrix(m, x, y));
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
@@ -408,7 +427,7 @@ function tokenizeSyntax(text: string): string {
   return text
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/\b(for|in|range|end|push|pop)\b/g, `<span style="color:#c084fc">$1</span>`)
-    .replace(/\b(translate|scale|rotate|drawSquare|sin|cos)\b/g, `<span style="color:#38bdf8">$1</span>`)
+    .replace(/\b(translate|scale|rotate|drawSquare|drawUnitSquare|sin|cos)\b/g, `<span style="color:#38bdf8">$1</span>`)
     .replace(/\bpi\b/g, `<span style="color:#fbbf24">pi</span>`)
     .replace(/\b(\d+\.?\d*)\b/g, `<span style="color:#fbbf24">$1</span>`)
     .replace(/\b([a-z_]\w*)\s*(?=\()/gi, (_m: string, n: string) => `<span style="color:#38bdf8">${n}</span>`);
@@ -784,7 +803,7 @@ export default function TransformVisualizer() {
               fontSize: 10, color: "#3d5268", lineHeight: 1.8,
               display: "flex", gap: 16, flexWrap: "wrap",
             }}>
-              {(["push", "pop", "translate(x,y)", "scale(x,y)", "rotate(rad)", "drawSquare()", "for i in range(n)", "end", "pi", "sin(x)", "cos(x)"] as const).map((k) => (
+              {(["push", "pop", "translate(x,y)", "scale(x,y)", "rotate(rad)", "drawSquare()", "drawUnitSquare()", "for i in range(n)", "end", "pi", "sin(x)", "cos(x)"] as const).map((k) => (
                 <code
                   key={k}
                   style={{
