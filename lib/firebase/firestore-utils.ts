@@ -1,11 +1,18 @@
 import {
   collection,
   getDocs,
+  getDocsFromCache,
   doc,
+  getDoc,
+  getDocFromCache,
   setDoc,
   writeBatch,
   query,
   limit,
+  orderBy,
+  startAfter,
+  documentId,
+  QueryConstraint,
   FirestoreError,
   deleteDoc,
 } from "firebase/firestore";
@@ -16,6 +23,16 @@ import { db } from "./config";
  */
 export type FirestoreDocument<T> = T & { id: string };
 
+export type ReadCollectionOptions = {
+  maxItems?: number;
+  preferCache?: boolean;
+};
+
+export type ReadCollectionPageResult<T extends Record<string, any>> = {
+  items: FirestoreDocument<T>[];
+  nextCursor: string | null;
+};
+
 /**
  * Reads all documents from a Firestore collection
  * @param collectionName - Name of the collection to read from
@@ -24,12 +41,25 @@ export type FirestoreDocument<T> = T & { id: string };
  */
 export async function readCollection<T extends Record<string, any>>(
   collectionName: string,
-  maxItems?: number
+  options?: number | ReadCollectionOptions
 ): Promise<FirestoreDocument<T>[]> {
   try {
+    const normalizedOptions: ReadCollectionOptions =
+      typeof options === "number"
+        ? { maxItems: options, preferCache: true }
+        : { maxItems: options?.maxItems, preferCache: options?.preferCache ?? true };
+
     const ref = collection(db, collectionName);
-    const q = maxItems ? query(ref, limit(maxItems)) : query(ref);
-    const snapshot = await getDocs(q);
+    const constraints: QueryConstraint[] = [];
+    if (normalizedOptions.maxItems) {
+      constraints.push(limit(normalizedOptions.maxItems));
+    }
+    const q = query(ref, ...constraints);
+
+    const snapshot = normalizedOptions.preferCache
+      ? await getDocsFromCache(q).catch(() => getDocs(q))
+      : await getDocs(q);
+
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...(doc.data() as T),
@@ -43,6 +73,49 @@ export async function readCollection<T extends Record<string, any>>(
     }
     throw err;
   }
+}
+
+export async function readCollectionPage<T extends Record<string, any>>(
+  collectionName: string,
+  pageSize = 50,
+  afterId?: string,
+  preferCache = true
+): Promise<ReadCollectionPageResult<T>> {
+  const ref = collection(db, collectionName);
+  const constraints: QueryConstraint[] = [orderBy(documentId()), limit(pageSize)];
+  if (afterId) {
+    constraints.push(startAfter(afterId));
+  }
+
+  const q = query(ref, ...constraints);
+  const snapshot = preferCache
+    ? await getDocsFromCache(q).catch(() => getDocs(q))
+    : await getDocs(q);
+
+  const items = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as T),
+  }));
+  const nextCursor = items.length === pageSize ? items[items.length - 1].id : null;
+
+  return { items, nextCursor };
+}
+
+export async function readDocumentById<T extends Record<string, any>>(
+  collectionName: string,
+  id: string,
+  preferCache = true
+): Promise<FirestoreDocument<T> | null> {
+  const ref = doc(db, collectionName, id);
+  const snapshot = preferCache
+    ? await getDocFromCache(ref).catch(() => getDoc(ref))
+    : await getDoc(ref);
+
+  if (!snapshot.exists()) return null;
+  return {
+    id: snapshot.id,
+    ...(snapshot.data() as T),
+  };
 }
 
 /**

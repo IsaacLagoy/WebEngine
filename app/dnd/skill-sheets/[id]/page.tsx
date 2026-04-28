@@ -7,6 +7,7 @@ import {
   Spell, SpellData,
   SkillSheet, SkillSheetData,
   readCollection,
+  readDocumentById,
   addToCollection,
 } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
@@ -47,12 +48,12 @@ export default function SkillSheetDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [sheets, skills, spells] = await Promise.all([
-          readCollection<SkillSheetData>("skillSheets"),
+        const [sheetDoc, skills, spells] = await Promise.all([
+          readDocumentById<SkillSheetData>("skillSheets", id, true),
           readCollection<SkillData>("skills"),
           readCollection<SpellData>("spells"),
         ]);
-        setSheet(sheets.find((s) => s.id === id) ?? null);
+        setSheet(sheetDoc);
         setAllSkills(skills);
         setAllSpells(spells);
       } catch (err) {

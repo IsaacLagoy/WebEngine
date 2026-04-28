@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Race, RaceData,
   Skill, SkillData,
-  readCollection, addToCollection, removeFromCollection,
+  readCollection, readCollectionPage, removeFromCollection,
 } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 import SkillSpellModal from "@/app/dnd/components/SkillSpellModal";
@@ -22,6 +22,7 @@ const STAT_KEYS: { key: keyof RaceData; label: string }[] = [
   { key: "wis", label: "WIS" },
   { key: "cha", label: "CHA" },
 ];
+const PAGE_SIZE = 50;
 
 function formatMod(value: number): string {
   return value >= 0 ? `+${value}` : `${value}`;
@@ -156,22 +157,31 @@ export default function RacesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedRace, setSelectedRace]     = useState<Race | null>(null);
   const [selectedSkill, setSelectedSkill]   = useState<Skill | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
   const isAdmin = useIsAdmin();
 
   const loadData = useCallback(async () => {
     try {
       const [races, skills] = await Promise.all([
-        readCollection<RaceData>("races"),
-        readCollection<SkillData>("skills"),
+        readCollectionPage<RaceData>("races", PAGE_SIZE, cursorByPage[currentPage], true),
+        readCollection<SkillData>("skills", { maxItems: 50, preferCache: true }),
       ]);
-      setRaces(races);
+      setRaces(races.items);
+      setHasNextPage(races.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!races.nextCursor) return prev;
+        if (prev[currentPage + 1] === races.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: races.nextCursor };
+      });
       setAllSkills(skills);
     } catch (err: any) {
       console.error("Error loading races:", err);
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleDeleteRace(raceId: string) {
     try {
@@ -208,6 +218,7 @@ export default function RacesPage() {
         ) : races.length === 0 ? (
           <div className="text-white/70 text-lg">No races found.</div>
         ) : (
+          <>
           <ul className="space-y-3">
             {races.map((race) => (
               <li key={race.id}>
@@ -235,6 +246,30 @@ export default function RacesPage() {
               </li>
             ))}
           </ul>
+          {(currentPage > 1 || hasNextPage) && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &lt;
+              </button>
+              <span className="text-white/60 text-sm">
+                Page {currentPage}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNextPage) setCurrentPage((p) => p + 1);
+                }}
+                disabled={!hasNextPage}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

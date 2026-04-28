@@ -99,3 +99,22 @@ export interface RaceData {
 }
 
 export type Race = RaceData & { id: string };
+
+// ------------------------------------------------------------
+// Potion Types
+// ------------------------------------------------------------
+
+export type PotionFormField = "level" | "stat" | "element" | "dice";
+
+export interface PotionData {
+  name: string;
+  description: string;
+  base: number;
+  linear: number;
+  quadratic: number;
+  exponential: number;
+  form: PotionFormField[];
+  iterval: string; // "hour" | "round" — preserving original typo from data
+}
+
+export type Potion = PotionData & { id: string };

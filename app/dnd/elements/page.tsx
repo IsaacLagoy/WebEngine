@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MagicElement, MagicElementData, readCollection, addToCollectionBatch, addToCollection, removeFromCollection } from "@/lib/firebase";
+import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
+import { MagicElement, MagicElementData, readCollectionPage, readDocumentById, addToCollection, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 import FormModal, { FieldConfig } from "@/app/components/modal/FormModal";
 import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailModal";
@@ -34,6 +35,7 @@ const MAGIC_ELEMENT_DISPLAY_FIELDS: DisplayFieldConfig[] = [
     label: "Weaknesses",
   },
 ];
+const PAGE_SIZE = 50;
 
 export default function MagicElementsPage() {
   const [elements, setElements] = useState<MagicElement[]>([]);
@@ -41,13 +43,27 @@ export default function MagicElementsPage() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState<MagicElement | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false); // State to track admin status
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const isAdmin = useIsAdmin();
 
   // Memoize loadElements to prevent unnecessary re-renders
   const loadElements = useCallback(async () => {
     try {
-      const data = await readCollection<MagicElementData>("magicElements");
-      setElements(data);
+      const result = await readCollectionPage<MagicElementData>(
+        "magicElements",
+        PAGE_SIZE,
+        cursorByPage[currentPage],
+        true
+      );
+      setElements(result.items);
+      setHasNextPage(result.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!result.nextCursor) return prev;
+        if (prev[currentPage + 1] === result.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: result.nextCursor };
+      });
     } catch (err: any) {
       console.error("Error loading elements:", err);
       if (err?.code === "permission-denied") {
@@ -58,7 +74,7 @@ export default function MagicElementsPage() {
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleAddElement(data: MagicElementData) {
     // Convert name to ID format (lowercase, no spaces)
@@ -67,6 +83,8 @@ export default function MagicElementsPage() {
     try {
       // Using the element ID as document ID will update if exists, create if new
       await addToCollection("magicElements", data, elementId);
+      setCurrentPage(1);
+      setCursorByPage({ 1: undefined });
       await loadElements();
     } catch (err: any) {
       console.error("Error adding element:", err);
@@ -91,23 +109,20 @@ export default function MagicElementsPage() {
   }
 
   const handleElementClick = (element: MagicElement) => {
-    setSelectedElement(element);
-    setIsDetailModalOpen(true);
+    readDocumentById<MagicElementData>("magicElements", element.id, true)
+      .then((fullElement) => {
+        setSelectedElement(fullElement ?? element);
+        setIsDetailModalOpen(true);
+      })
+      .catch(() => {
+        setSelectedElement(element);
+        setIsDetailModalOpen(true);
+      });
   };
 
   useEffect(() => {
     loadElements();
   }, [loadElements]);
-
-  useEffect(() => {
-    // Simulate fetching admin status (replace with actual logic)
-    const fetchAdminStatus = async () => {
-      const userIsAdmin = true; // Replace with actual admin check logic
-      setIsAdmin(userIsAdmin);
-    };
-
-    fetchAdminStatus();
-  }, []);
 
   return (
     <main className="min-h-screen pt-24 px-8 py-12">
@@ -139,6 +154,7 @@ export default function MagicElementsPage() {
         ) : elements.length === 0 ? (
           <div className="text-white/70 text-lg">No elements found. Click "Add Element" or "Seed Magic Elements" to get started.</div>
         ) : (
+          <>
           <ul className="space-y-3">
             {elements.map((el) => (
               <li key={el.id}>
@@ -166,6 +182,30 @@ export default function MagicElementsPage() {
               </li>
             ))}
           </ul>
+          {(currentPage > 1 || hasNextPage) && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &lt;
+              </button>
+              <span className="text-white/60 text-sm">
+                Page {currentPage}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNextPage) setCurrentPage((p) => p + 1);
+                }}
+                disabled={!hasNextPage}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

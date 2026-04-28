@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { DndClass, ClassData, readCollection } from "@/lib/firebase";
+import { DndClass, ClassData, readDocumentById } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 
 export default function ClassDetailPage() {
@@ -16,8 +16,8 @@ export default function ClassDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await readCollection<ClassData>("classes");
-        setCls(data.find((c) => c.id === id) ?? null);
+        const data = await readDocumentById<ClassData>("classes", id, true);
+        setCls(data);
       } catch (err) {
         console.error("Error loading class:", err);
       } finally {

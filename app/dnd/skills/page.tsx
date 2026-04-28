@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
-import { Skill, SkillData, readCollection, addToCollection, removeFromCollection } from "@/lib/firebase";
+import { Skill, SkillData, readCollectionPage, readDocumentById, addToCollection, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 import FormModal, { FieldConfig } from "@/app/components/modal/FormModal";
 import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailModal";
@@ -38,6 +38,7 @@ const SKILL_DISPLAY_FIELDS: DisplayFieldConfig[] = [
   { key: "description", label: "Description" },
   { key: "rolls",       label: "Rolls" },
 ];
+const PAGE_SIZE = 50;
 
 // ------------------------------------------------------------
 // Page
@@ -50,11 +51,21 @@ export default function SkillsPage() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const loadSkills = useCallback(async () => {
     try {
-      const data = await readCollection<SkillData>("skills");
-      setSkills(data);
+      const afterId = cursorByPage[currentPage];
+      const result = await readCollectionPage<SkillData>("skills", PAGE_SIZE, afterId, true);
+      setSkills(result.items);
+      setHasNextPage(result.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!result.nextCursor) return prev;
+        if (prev[currentPage + 1] === result.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: result.nextCursor };
+      });
     } catch (err: any) {
       console.error("Error loading skills:", err);
       if (err?.code === "permission-denied") {
@@ -63,12 +74,14 @@ export default function SkillsPage() {
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleAddSkill(data: SkillData) {
     const skillId = data.name.toLowerCase().replace(/\s+/g, "-");
     try {
       await addToCollection("skills", data, skillId);
+      setCurrentPage(1);
+      setCursorByPage({ 1: undefined });
       await loadSkills();
     } catch (err: any) {
       console.error("Error adding skill:", err);
@@ -101,8 +114,15 @@ export default function SkillsPage() {
   }
 
   const handleSkillClick = (skill: Skill) => {
-    setSelectedSkill(skill);
-    setIsDetailModalOpen(true);
+    readDocumentById<SkillData>("skills", skill.id, true)
+      .then((fullSkill) => {
+        setSelectedSkill(fullSkill ?? skill);
+        setIsDetailModalOpen(true);
+      })
+      .catch(() => {
+        setSelectedSkill(skill);
+        setIsDetailModalOpen(true);
+      });
   };
 
   useEffect(() => {
@@ -139,6 +159,7 @@ export default function SkillsPage() {
             No skills found. Click "Add" to create one.
           </div>
         ) : (
+          <>
           <ul className="space-y-3">
             {skills.map((skill) => (
               <li key={skill.id}>
@@ -180,6 +201,30 @@ export default function SkillsPage() {
               </li>
             ))}
           </ul>
+          {(currentPage > 1 || hasNextPage) && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &lt;
+              </button>
+              <span className="text-white/60 text-sm">
+                Page {currentPage}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNextPage) setCurrentPage((p) => p + 1);
+                }}
+                disabled={!hasNextPage}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

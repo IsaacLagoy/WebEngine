@@ -3,25 +3,36 @@
 import { useEffect, useState, useCallback } from "react";
 import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
 import { useRouter } from "next/navigation";
-import { SkillSheet, SkillSheetData, readCollection, addToCollection, removeFromCollection } from "@/lib/firebase";
+import { SkillSheet, SkillSheetData, readCollectionPage, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
+
+const PAGE_SIZE = 50;
 
 export default function SkillSheetsPage() {
   const router = useRouter();
   const [sheets, setSheets] = useState<SkillSheet[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
   const isAdmin = useIsAdmin();
 
   const loadSheets = useCallback(async () => {
     try {
-      const data = await readCollection<SkillSheetData>("skillSheets");
-      setSheets(data);
+      const result = await readCollectionPage<SkillSheetData>("skillSheets", PAGE_SIZE, cursorByPage[currentPage], true);
+      setSheets(result.items);
+      setHasNextPage(result.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!result.nextCursor) return prev;
+        if (prev[currentPage + 1] === result.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: result.nextCursor };
+      });
     } catch (err: any) {
       console.error("Error loading skill sheets:", err);
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleDeleteSheet(sheetId: string) {
     try {
@@ -51,6 +62,7 @@ export default function SkillSheetsPage() {
         ) : sheets.length === 0 ? (
           <div className="text-white/70 text-lg">No skill sheets found.</div>
         ) : (
+          <>
           <ul className="space-y-3">
             {sheets.map((sheet) => (
               <li key={sheet.id}>
@@ -78,6 +90,30 @@ export default function SkillSheetsPage() {
               </li>
             ))}
           </ul>
+          {(currentPage > 1 || hasNextPage) && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &lt;
+              </button>
+              <span className="text-white/60 text-sm">
+                Page {currentPage}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNextPage) setCurrentPage((p) => p + 1);
+                }}
+                disabled={!hasNextPage}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </main>

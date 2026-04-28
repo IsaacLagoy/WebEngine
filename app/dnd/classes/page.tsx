@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
 import { useRouter } from "next/navigation";
-import { DndClass, ClassData, readCollection, removeFromCollection } from "@/lib/firebase";
+import { DndClass, ClassData, readCollectionPage, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
+
+const PAGE_SIZE = 50;
 
 export default function ClassesPage() {
   const router = useRouter();
@@ -12,18 +14,27 @@ export default function ClassesPage() {
 
   const [classes, setClasses] = useState<DndClass[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
   const isAdmin = useIsAdmin();
 
   const loadClasses = useCallback(async () => {
     try {
-      const data = await readCollection<ClassData>("classes");
-      setClasses(data);
+      const result = await readCollectionPage<ClassData>("classes", PAGE_SIZE, cursorByPage[currentPage], true);
+      setClasses(result.items);
+      setHasNextPage(result.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!result.nextCursor) return prev;
+        if (prev[currentPage + 1] === result.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: result.nextCursor };
+      });
     } catch (err: any) {
       console.error("Error loading classes:", err);
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleDeleteClass(classId: string) {
     try {
@@ -63,6 +74,7 @@ export default function ClassesPage() {
         ) : classes.length === 0 ? (
           <div className="text-white/70 text-lg">No classes found.</div>
         ) : (
+          <>
           <ul className="space-y-3">
             {classes.map((cls) => (
               <li key={cls.id}>
@@ -92,6 +104,30 @@ export default function ClassesPage() {
               </li>
             ))}
           </ul>
+          {(currentPage > 1 || hasNextPage) && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &lt;
+              </button>
+              <span className="text-white/60 text-sm">
+                Page {currentPage}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNextPage) setCurrentPage((p) => p + 1);
+                }}
+                disabled={!hasNextPage}
+                className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </main>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useIsAdmin } from "@/app/dnd/hooks/useIsAdmin";
-import { Spell, SpellData, readCollection, addToCollection, removeFromCollection } from "@/lib/firebase";
+import { Spell, SpellData, readCollectionPage, readDocumentById, addToCollection, removeFromCollection } from "@/lib/firebase";
 import Glass from "@/app/components/Glass";
 import FormModal, { FieldConfig } from "@/app/components/modal/FormModal";
 import DetailModal, { DisplayFieldConfig } from "@/app/components/modal/DetailModal";
@@ -98,17 +98,20 @@ export default function SpellsPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSpell, setSelectedSpell] = useState<Spell | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(spells.length / PAGE_SIZE);
-  const paginatedSpells = spells.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const loadSpells = useCallback(async () => {
     try {
-      const data = await readCollection<SpellData>("spells");
-      setSpells(data);
+      const afterId = cursorByPage[currentPage];
+      const result = await readCollectionPage<SpellData>("spells", PAGE_SIZE, afterId, true);
+      setSpells(result.items);
+      setHasNextPage(result.nextCursor !== null);
+      setCursorByPage((prev) => {
+        if (!result.nextCursor) return prev;
+        if (prev[currentPage + 1] === result.nextCursor) return prev;
+        return { ...prev, [currentPage + 1]: result.nextCursor };
+      });
     } catch (err: any) {
       console.error("Error loading spells:", err);
       if (err?.code === "permission-denied") {
@@ -117,7 +120,7 @@ export default function SpellsPage() {
     } finally {
       setInitialLoading(false);
     }
-  }, []);
+  }, [currentPage, cursorByPage]);
 
   async function handleAddSpell(data: SpellData) {
     const coerced = {
@@ -127,6 +130,8 @@ export default function SpellsPage() {
     const spellId = coerced.name.toLowerCase().replace(/\s+/g, "-");
     try {
       await addToCollection("spells", coerced, spellId);
+      setCurrentPage(1);
+      setCursorByPage({ 1: undefined });
       await loadSpells();
     } catch (err: any) {
       console.error("Error adding spell:", err);
@@ -167,8 +172,15 @@ export default function SpellsPage() {
   }
 
   const handleSpellClick = (spell: Spell) => {
-    setSelectedSpell(spell);
-    setIsDetailModalOpen(true);
+    readDocumentById<SpellData>("spells", spell.id, true)
+      .then((fullSpell) => {
+        setSelectedSpell(fullSpell ?? spell);
+        setIsDetailModalOpen(true);
+      })
+      .catch(() => {
+        setSelectedSpell(spell);
+        setIsDetailModalOpen(true);
+      });
   };
 
   useEffect(() => {
@@ -207,7 +219,7 @@ export default function SpellsPage() {
         ) : (
           <>
             <ul className="space-y-3">
-              {paginatedSpells.map((spell) => (
+              {spells.map((spell) => (
                 <li key={spell.id}>
                   <Glass
                     className="p-4 cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-between relative"
@@ -249,7 +261,7 @@ export default function SpellsPage() {
               ))}
             </ul>
 
-            {totalPages > 1 && (
+            {(currentPage > 1 || hasNextPage) && (
               <div className="flex items-center justify-center gap-4 mt-8">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -259,11 +271,13 @@ export default function SpellsPage() {
                   &lt;
                 </button>
                 <span className="text-white/60 text-sm">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage}
                 </span>
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    if (hasNextPage) setCurrentPage((p) => p + 1);
+                  }}
+                  disabled={!hasNextPage}
                   className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-2xl px-2"
                 >
                   &gt;
