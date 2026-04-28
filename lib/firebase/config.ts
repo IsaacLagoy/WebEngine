@@ -1,5 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 
 // Validate required environment variables
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -52,17 +57,19 @@ const firebaseConfig = {
 
 // Initialize Firebase only if not already initialized (prevents duplicate instances)
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
-
-// Enable persistence for offline support and caching (only on client side)
-if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === "failed-precondition") {
-      // Multiple tabs open, persistence can only be enabled in one tab at a time
-      console.warn("Firestore persistence already enabled in another tab");
-    } else if (err.code === "unimplemented") {
-      // Browser doesn't support persistence
-      console.warn("Firestore persistence not supported in this browser");
+// Use modern Firestore local cache configuration (replaces deprecated enableIndexedDbPersistence).
+export const db = (() => {
+  try {
+    if (typeof window !== "undefined") {
+      return initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
     }
-  });
-}
+    return initializeFirestore(app);
+  } catch {
+    // If Firestore is already initialized, reuse existing instance.
+    return getFirestore(app);
+  }
+})();

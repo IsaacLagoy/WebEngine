@@ -56,9 +56,18 @@ export async function readCollection<T extends Record<string, any>>(
     }
     const q = query(ref, ...constraints);
 
-    const snapshot = normalizedOptions.preferCache
-      ? await getDocsFromCache(q).catch(() => getDocs(q))
-      : await getDocs(q);
+    let snapshot;
+    if (normalizedOptions.preferCache) {
+      try {
+        const cachedSnapshot = await getDocsFromCache(q);
+        // Cold caches can return empty results without throwing.
+        snapshot = cachedSnapshot.empty ? await getDocs(q) : cachedSnapshot;
+      } catch {
+        snapshot = await getDocs(q);
+      }
+    } else {
+      snapshot = await getDocs(q);
+    }
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -88,9 +97,18 @@ export async function readCollectionPage<T extends Record<string, any>>(
   }
 
   const q = query(ref, ...constraints);
-  const snapshot = preferCache
-    ? await getDocsFromCache(q).catch(() => getDocs(q))
-    : await getDocs(q);
+  let snapshot;
+  if (preferCache) {
+    try {
+      const cachedSnapshot = await getDocsFromCache(q);
+      // Cold caches can return empty results without throwing.
+      snapshot = cachedSnapshot.empty ? await getDocs(q) : cachedSnapshot;
+    } catch {
+      snapshot = await getDocs(q);
+    }
+  } else {
+    snapshot = await getDocs(q);
+  }
 
   const items = snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -107,9 +125,18 @@ export async function readDocumentById<T extends Record<string, any>>(
   preferCache = true
 ): Promise<FirestoreDocument<T> | null> {
   const ref = doc(db, collectionName, id);
-  const snapshot = preferCache
-    ? await getDocFromCache(ref).catch(() => getDoc(ref))
-    : await getDoc(ref);
+  let snapshot;
+  if (preferCache) {
+    try {
+      const cachedSnapshot = await getDocFromCache(ref);
+      // Cold caches can return non-existent docs without throwing.
+      snapshot = cachedSnapshot.exists() ? cachedSnapshot : await getDoc(ref);
+    } catch {
+      snapshot = await getDoc(ref);
+    }
+  } else {
+    snapshot = await getDoc(ref);
+  }
 
   if (!snapshot.exists()) return null;
   return {
