@@ -276,25 +276,27 @@ export default function BlogPage() {
   };
 
   return (
-    <main className="min-h-screen px-6 py-10 md:px-10 text-white">
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold">Blog</h1>
-            <p className="mt-2 text-white/75">
-              Thoughts, updates, and experiments.
-            </p>
-          </div>
+    <main className="min-h-screen px-4 md:px-8 pt-20 md:pt-24 pb-8 md:pb-12 text-white">
+      <div className="max-w-7xl mx-auto space-y-12">
+        <section className="text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Blog
+          </h1>
+          <p className="text-white/80 text-sm md:text-base max-w-2xl mx-auto">
+            This is my blog.
+          </p>
           {canCreatePost && (
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-500"
-            >
-              New Post
-            </button>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-500"
+              >
+                New Post
+              </button>
+            </div>
           )}
-        </div>
+        </section>
 
         {isLoadingPosts ? (
           <p className="text-white/70">Loading posts...</p>
