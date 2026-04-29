@@ -49,3 +49,4 @@ seed.ts
 
 lib/webgl-canvas/dist/
 *.log
+*.rules
