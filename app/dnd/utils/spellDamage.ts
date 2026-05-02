@@ -123,10 +123,13 @@ export function computeSpellDamage(
       average = base / 3;
       variancePreference = "low";
       break;
-    case "cone":
-      average = base / 1.75;
+    case "cone": {
+      const coneRadius = targeting?.radius;
+      average =
+        coneRadius !== undefined && coneRadius > 5 ? base / 1.75 : base; // reduce variance for smaller cones
       variancePreference = "low";
       break;
+    }
     case "chain": {
       average = base / 1.5;
       variancePreference = "high";

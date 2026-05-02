@@ -318,7 +318,7 @@ export default function BlogPage() {
                   {(post.imageUrl || post.youtubeUrl) && (
                     <div className="mt-4 w-full space-y-4">
                       {post.imageUrl && (
-                        <div className="flex h-80 max-h-[70vh] w-full items-center justify-center overflow-hidden bg-gray-900/60">
+                        <div className="flex h-80 max-h-[70vh] w-full items-center justify-center overflow-hidden bg-gray-900/20">
                           <img
                             src={post.imageUrl}
                             alt={post.title}

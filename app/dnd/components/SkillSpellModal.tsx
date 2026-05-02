@@ -26,21 +26,19 @@ function formatTargeting(targeting: SpellData["targeting"]): string {
 // ------------------------------------------------------------
 
 const SKILL_DISPLAY_FIELDS: DisplayFieldConfig[] = [
-  { key: "name",        label: "Skill Name" },
   { key: "description", label: "Description" },
-  { key: "rolls",       label: "Rolls" },
+  { key: "rolls", label: "Rolls" },
 ];
 
 function getSpellDisplayFields(diceString: string | null): DisplayFieldConfig[] {
   const fields: DisplayFieldConfig[] = [
-    { key: "name", label: "Spell Name" },
     { key: "description", label: "Description" },
     { key: "cost", label: "MP Cost", render: (value) => `${value} MP` },
     { key: "targeting", label: "Targeting", render: (value) => formatTargeting(value) },
   ];
 
   if (diceString) {
-    fields.splice(3, 0, { key: "damage", label: "Damage", render: () => diceString });
+    fields.splice(2, 0, { key: "damage", label: "Damage", render: () => diceString });
   }
 
   return fields;
