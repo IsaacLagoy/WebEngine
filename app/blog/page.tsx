@@ -90,7 +90,7 @@ export default function BlogPage() {
   const [submitStatus, setSubmitStatus] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const canCreatePost = Boolean(user);
+  const canCreatePost = !authLoading && Boolean(user);
   const storage = useMemo(() => {
     const nextStorage = getStorage(app);
     // Fail fast on bad config/network instead of retrying for minutes.
@@ -306,25 +306,23 @@ export default function BlogPage() {
           <div className="space-y-8">
             {posts.map((post) => (
               <article key={post.id} className="border-b border-white/15 pb-8">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
-                  <Glass className="min-w-0 flex-1 p-5">
-                    <h2 className="text-2xl font-semibold">{post.title}</h2>
-                    {post.createdAt && (
-                      <p className="mt-1 text-sm text-white/60">
-                        {post.createdAt.toDate().toLocaleString()}
-                      </p>
-                    )}
-                    <p className="mt-4 whitespace-pre-wrap text-white/90">{post.text}</p>
-                  </Glass>
+                <Glass className="min-w-0 flex-1 p-5">
+                  <h2 className="text-2xl font-semibold">{post.title}</h2>
+                  {post.createdAt && (
+                    <p className="mt-1 text-sm text-white/60">
+                      {post.createdAt.toDate().toLocaleString()}
+                    </p>
+                  )}
+                  <p className="mt-4 whitespace-pre-wrap text-white/90">{post.text}</p>
 
                   {(post.imageUrl || post.youtubeUrl) && (
-                    <div className="w-full space-y-4 md:w-[360px] md:shrink-0">
+                    <div className="mt-4 w-full space-y-4">
                       {post.imageUrl && (
-                        <div className="overflow-hidden">
+                        <div className="flex h-80 max-h-[70vh] w-full items-center justify-center overflow-hidden bg-gray-900/60">
                           <img
                             src={post.imageUrl}
                             alt={post.title}
-                            className="h-auto max-h-[70vh] w-full object-contain"
+                            className="h-full w-auto max-w-full object-contain"
                             loading="lazy"
                           />
                         </div>
@@ -343,7 +341,7 @@ export default function BlogPage() {
                       )}
                     </div>
                   )}
-                </div>
+                </Glass>
               </article>
             ))}
           </div>
@@ -363,17 +361,18 @@ export default function BlogPage() {
         )}
       </div>
 
-      <BaseModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          if (isSubmitting) return;
-          setIsModalOpen(false);
-          resetForm();
-        }}
-        title="Create Post"
-        maxWidth="xl"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {canCreatePost && (
+        <BaseModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            if (isSubmitting) return;
+            setIsModalOpen(false);
+            resetForm();
+          }}
+          title="Create Post"
+          maxWidth="xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="blog-title" className="mb-1 block text-sm text-white/80">
               Title
@@ -491,8 +490,9 @@ export default function BlogPage() {
               {isSubmitting ? "Publishing..." : "Publish"}
             </button>
           </div>
-        </form>
-      </BaseModal>
+          </form>
+        </BaseModal>
+      )}
     </main>
   );
 }
