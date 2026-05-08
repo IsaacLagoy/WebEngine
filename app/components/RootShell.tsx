@@ -8,6 +8,7 @@ import Header from "./Header";
 
 const DISABLE_BACKGROUND_AND_IDLE: string[] = [
   "/games/matrix-stack",
+  "/games/date-my-roommate"
 ];
 
 export default function RootShell({ children }: { children: ReactNode }) {
