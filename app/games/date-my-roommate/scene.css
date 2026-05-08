@@ -1,0 +1,204 @@
+/* ─────────────────────────────────────────
+   Dating Sim — Scene CSS
+   Import this in your global stylesheet
+   or via @import in app/globals.css
+   ───────────────────────────────────────── */
+
+/* ── Scene container ── */
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  background: #0d0b1a;
+}
+
+/* ── Background decorative layer ── */
+.scene__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Left / right character columns ── */
+.scene__col {
+  position: absolute;
+  bottom: 0;
+  /* Dialogue box is ~20% of height; characters sit above it */
+  height: 85%;
+  width: 40%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.scene__col--left  { left: 0; }
+.scene__col--right { right: 0; }
+
+/* ─────────────────────────────────────────
+   CharacterSlot
+   ───────────────────────────────────────── */
+.char-slot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  /* Off-screen by default */
+  opacity: 0;
+  transition:
+    transform 0.55s cubic-bezier(0.34, 1.4, 0.64, 1),
+    opacity   0.4s  ease,
+    filter    0.35s ease;
+}
+
+/* Left character enters from the left */
+.char-slot--left  { transform: translateX(-120%) translateY(8px); }
+
+/* Right character enters from the right */
+.char-slot--right { transform: translateX(120%)  translateY(8px); }
+
+/* Slide in when --in modifier is present */
+.char-slot--in {
+  transform: translateX(0) translateY(0);
+  opacity: 1;
+}
+
+/* Dim non-speaking characters only while in-scene */
+.char-slot--in.char-slot--dimmed {
+  filter: brightness(0.55) saturate(0.7);
+  opacity: 0.75;
+}
+
+/* Speaking character is always full brightness */
+.char-slot--in:not(.char-slot--dimmed) {
+  filter: none;
+  opacity: 1;
+}
+
+/* When dialogue is lowered, keep all in-scene characters fully visible */
+.scene[data-dialogue-visible="false"] .char-slot--in {
+  filter: none;
+  opacity: 1;
+}
+
+/* Mirror image for right-side characters */
+.char-image--flipped {
+  transform: scaleX(-1);
+}
+
+/* ─────────────────────────────────────────
+   DialogueBox
+   ───────────────────────────────────────── */
+.dialogue-box {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+
+  padding: 16px 24px 20px;
+  min-height: 110px;
+  cursor: pointer;
+  user-select: none;
+
+  background: rgba(8, 6, 20, 0.88);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(180, 140, 255, 0.25);
+
+  transform: translateY(0);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dialogue-box--hidden {
+  transform: translateY(110%);
+}
+
+.dialogue-speaker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+
+.dialogue-text {
+  font-size: 0.95rem;
+  color: rgba(235, 230, 255, 0.92);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.dialogue-advance {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  font-size: 0.6rem;
+  color: rgba(200, 180, 255, 0.5);
+  animation: advancePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes advancePulse {
+  0%, 100% { opacity: 0.4; transform: translateY(0); }
+  50%       { opacity: 1;   transform: translateY(3px); }
+}
+
+/* ─────────────────────────────────────────
+   Mobile layout  (≤ 640px)
+   ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .scene {
+    /* Let the scene fill more of the screen height on mobile */
+    aspect-ratio: unset;
+    height: 100svh;
+  }
+
+  .scene__col {
+    width: 100%;
+    left: 0;
+    right: 0;
+    height: 80%;
+    justify-content: center;
+  }
+
+  /* Both columns stack in the same space — only the active one shows */
+  .scene__col--left,
+  .scene__col--right {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  /*
+    On mobile a character slot is only visible when it belongs to the
+    last speaker. The --mobile-active modifier is toggled by <Scene />.
+  */
+  .char-slot {
+    /* Default: invisible on mobile even if in-scene */
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+  .char-slot--mobile-active.char-slot--in {
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: auto;
+    /* Reset any left/right translation — center the sprite */
+    transform: translateX(0) translateY(0) !important;
+  }
+
+  /* Right-side characters are mirrored; keep the flip on mobile too */
+  .char-slot--mobile-active.char-slot--in .char-image--flipped {
+    transform: scaleX(-1);
+  }
+
+  .dialogue-box {
+    padding: 14px 18px 18px;
+    min-height: 120px;
+  }
+
+  .dialogue-text {
+    font-size: 0.9rem;
+  }
+}
