@@ -141,3 +141,15 @@ export interface MaterialData {
   modifier: number;
 }
 export type Material = MaterialData & { id: string };
+
+// ------------------------------------------------------------
+// Shop Item Types
+// ------------------------------------------------------------
+
+export interface ShopItemData {
+  name: string;
+  description: string;
+  price: number;
+}
+
+export type ShopItem = ShopItemData & { id: string };
