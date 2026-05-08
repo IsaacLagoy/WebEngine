@@ -75,18 +75,52 @@ export interface Topping {
   imageSrc: string;
 }
 
+export interface DrinkColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+export const TOPPING_ITEMS: Topping[] = [
+  { name: "Tapioca", price: 0.5, imageSrc: "" },
+  { name: "Lychee Jelly", price: 0.5, imageSrc: "" },
+  { name: "Rainbow Jelly", price: 0.75, imageSrc: "" }
+];
+
 export interface Drink {
   name: string;
   price: number;
-  imageSrc: string;
+  color: DrinkColor;
 }
+
+export const DRINK_ITEMS: Drink[] = [
+  { name: "Milk Tea", price: 5.0, color: { r: 255, g: 255, b: 255, a: 255 } },
+  { name: "Green Tea", price: 5.0, color: { r: 0, g: 255, b: 0, a: 150 } },
+  { name: "Black Tea", price: 5.0, color: { r: 0, g: 0, b: 0, a: 150 } },
+  { name: "Oolong Tea", price: 5.0, color: { r: 255, g: 255, b: 0, a: 150 } },
+];
+
+export interface Syrup {
+  name: string;
+  price: number;
+  color: DrinkColor;
+}
+
+export const SYRUP_ITEMS: Syrup[] = [
+  { name: "Mango", price: 0.5, color: { r: 255, g: 165, b: 0, a: 255 } },
+  { name: "Strawberry", price: 0.5, color: { r: 255, g: 215, b: 0, a: 255 } },
+  { name: "Raspberry", price: 0.5, color: { r: 255, g: 100, b: 100, a: 255 } },
+];
 
 export class Boba {
   base: Drink;
   toppings: Topping[];
+  syrup?: Syrup;
 
-  constructor(base: Drink, toppings: Topping[]) {
+  constructor(base: Drink, toppings: Topping[], syrup?: Syrup) {
     this.base = base;
+    this.syrup = syrup;
     this.toppings = toppings;
   }
 
