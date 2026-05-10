@@ -8,6 +8,9 @@
  *   validate         - HOF: receives (id, name), return false to reject the drop.
  *                      Rejected items snap back to their origin automatically.
  *   returnCallbacks  - Shared ref map: id → { returnHome, setPlaced }.
+ *   initialPlacedItem - Pre-populate a "stay"-variant placed item (clothing equip).
+ *   children         - Optional. Extra content rendered inside the zone.
+ *   style            - Optional style overrides for the outer zone div.
  *
  * Behaviour:
  *   - "return" variant: onDrop fires; item stays at origin.
@@ -17,7 +20,7 @@
  *                       validate() is checked before any of the above.
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { ItemCallbacks, DragPayload } from "./DraggableItem";
 
 interface PlacedItem {
@@ -32,6 +35,8 @@ export interface DropZoneProps {
   validate?: (id: string, name: string) => boolean;
   returnCallbacks: React.MutableRefObject<Map<string, ItemCallbacks>>;
   initialPlacedItem?: PlacedItem | null;
+  children?: ReactNode;
+  style?: CSSProperties;
 }
 
 export default function DropZone({
@@ -41,6 +46,8 @@ export default function DropZone({
   validate,
   returnCallbacks,
   initialPlacedItem = null,
+  children,
+  style,
 }: DropZoneProps) {
   const [isOver, setIsOver] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -67,11 +74,9 @@ export default function DropZone({
 
       const { id, name, variant } = payload;
 
-      // Run validation — reject and snap back if it fails
       if (validate && !validate(id, name)) {
         setIsRejecting(true);
         setTimeout(() => setIsRejecting(false), 400);
-        // Item snaps back automatically since we never call setPlaced(true)
         return;
       }
 
@@ -120,17 +125,11 @@ export default function DropZone({
     [placedItem, returnCallbacks, onRemove]
   );
 
-  const borderColor = isRejecting
-    ? "#e05c5c"
-    : isOver
-    ? "#4a90d9"
-    : "#aac4e0";
-
-  const bgColor = isRejecting
-    ? "#fff0f0"
-    : isOver
-    ? "#d0e8ff"
-    : "#f5f9ff";
+  // Derive border styles without mixing shorthand + longhand
+  const borderWidth = "2px";
+  const borderStyle = "dashed";
+  const borderColor = isRejecting ? "#e05c5c" : isOver ? "#4a90d9" : "#aac4e0";
+  const backgroundColor = isRejecting ? "#fff0f0" : isOver ? "#d0e8ff" : "#f5f9ff";
 
   return (
     <div
@@ -147,24 +146,30 @@ export default function DropZone({
         minHeight: "90px",
         padding: "16px 20px",
         borderRadius: "8px",
-        border: `2px dashed ${borderColor}`,
-        backgroundColor: bgColor,
+        borderWidth,
+        borderStyle,
+        borderColor,
+        backgroundColor,
         transition: "border-color 0.15s, background-color 0.15s",
         boxSizing: "border-box",
+        ...style,
       }}
     >
-      <span style={{
-        fontSize: "10px",
-        fontFamily: "monospace",
-        textTransform: "uppercase",
-        letterSpacing: "0.1em",
-        color: isRejecting ? "#e05c5c" : "#7a9dbf",
-        fontWeight: 700,
-        transition: "color 0.15s",
-      }}>
-        {label}
-      </span>
+      {label && (
+        <span style={{
+          fontSize: "10px",
+          fontFamily: "monospace",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          color: isRejecting ? "#e05c5c" : "#7a9dbf",
+          fontWeight: 700,
+          transition: "color 0.15s",
+        }}>
+          {label}
+        </span>
+      )}
 
+      {/* Legacy "stay"-variant placed item (used by apartment clothing equip) */}
       {placedItem && (
         <div
           draggable
@@ -176,7 +181,9 @@ export default function DropZone({
             justifyContent: "center",
             padding: "8px 16px",
             borderRadius: "6px",
-            border: "2px solid #4a90d9",
+            borderWidth: "2px",
+            borderStyle: "solid",
+            borderColor: "#4a90d9",
             backgroundColor: "#eaf4ff",
             color: "#1a3a5c",
             fontFamily: "monospace",
@@ -189,6 +196,8 @@ export default function DropZone({
           {placedItem.name}
         </div>
       )}
+
+      {children}
     </div>
   );
 }

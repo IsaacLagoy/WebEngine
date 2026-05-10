@@ -12,7 +12,6 @@ export interface Clothing {
 export const CLOTHING_SLOTS = ["head", "top", "bottom", "shoes"] as const;
 export type ClothingSlot = (typeof CLOTHING_SLOTS)[number];
 
-// ID prefix convention: "head_", "top_", "bottom_", "shoes_"
 export const CLOTHING_ITEMS: Clothing[] = [
   { id: "head_1", name: "🎩 Top Hat" },
   { id: "head_2", name: "🕶️ Shades" },
@@ -43,7 +42,7 @@ export interface Character {
   id: string;
   name: string;
   imageSrc: string;
-  disposition?: number; // TODO: default to 50
+  disposition?: number;
   nameColor?: string;
 }
 
@@ -83,9 +82,9 @@ export interface DrinkColor {
 }
 
 export const TOPPING_ITEMS: Topping[] = [
-  { name: "Tapioca", price: 0.5, imageSrc: "" },
-  { name: "Lychee Jelly", price: 0.5, imageSrc: "" },
-  { name: "Rainbow Jelly", price: 0.75, imageSrc: "" }
+  { name: "Tapioca",       price: 0.5,  imageSrc: "" },
+  { name: "Lychee Jelly",  price: 0.5,  imageSrc: "" },
+  { name: "Rainbow Jelly", price: 0.75, imageSrc: "" },
 ];
 
 export interface Drink {
@@ -95,10 +94,10 @@ export interface Drink {
 }
 
 export const DRINK_ITEMS: Drink[] = [
-  { name: "Milk Tea", price: 5.0, color: { r: 255, g: 255, b: 255, a: 255 } },
-  { name: "Green Tea", price: 5.0, color: { r: 0, g: 255, b: 0, a: 150 } },
-  { name: "Black Tea", price: 5.0, color: { r: 0, g: 0, b: 0, a: 150 } },
-  { name: "Oolong Tea", price: 5.0, color: { r: 255, g: 255, b: 0, a: 150 } },
+  { name: "Milk Tea",   price: 5.0, color: { r: 210, g: 170, b: 120, a: 200 } },
+  { name: "Green Tea",  price: 5.0, color: { r: 100, g: 180, b: 100, a: 160 } },
+  { name: "Black Tea",  price: 5.0, color: { r: 50,  g: 30,  b: 15,  a: 180 } },
+  { name: "Oolong Tea", price: 5.0, color: { r: 190, g: 160, b: 60,  a: 160 } },
 ];
 
 export interface Syrup {
@@ -108,25 +107,55 @@ export interface Syrup {
 }
 
 export const SYRUP_ITEMS: Syrup[] = [
-  { name: "Mango", price: 0.5, color: { r: 255, g: 165, b: 0, a: 255 } },
-  { name: "Strawberry", price: 0.5, color: { r: 255, g: 215, b: 0, a: 255 } },
-  { name: "Raspberry", price: 0.5, color: { r: 255, g: 100, b: 100, a: 255 } },
+  { name: "Mango",      price: 0.5, color: { r: 255, g: 165, b: 0,   a: 200 } },
+  { name: "Strawberry", price: 0.5, color: { r: 220, g: 80,  b: 100, a: 200 } },
+  { name: "Raspberry",  price: 0.5, color: { r: 180, g: 40,  b: 80,  a: 200 } },
 ];
+
+/** A topping plus how many scoops were added to this cup. */
+export interface ToppingEntry {
+  topping: Topping;
+  quantity: number;
+}
 
 export class Boba {
   base: Drink;
-  toppings: Topping[];
+  toppings: ToppingEntry[];
   syrup?: Syrup;
 
-  constructor(base: Drink, toppings: Topping[], syrup?: Syrup) {
+  constructor(base: Drink, toppings: ToppingEntry[], syrup?: Syrup) {
     this.base = base;
     this.syrup = syrup;
     this.toppings = toppings;
   }
 
   get price(): number {
-    return this.base.price + this.toppings.reduce((acc, topping) => acc + topping.price, 0);
+    const toppingTotal = this.toppings.reduce(
+      (acc, e) => acc + e.topping.price * e.quantity,
+      0
+    );
+    return this.base.price + toppingTotal + (this.syrup?.price ?? 0);
   }
+}
+
+/**
+ * An in-progress cup moving through the shop stations.
+ * Pure in-memory — never persisted.
+ */
+export interface Cup {
+  id: string;
+  base?: Drink;
+  syrup?: Syrup;
+  toppings: ToppingEntry[];
+  quality?: BobaQuality;
+}
+
+export interface BobaQuality {
+  base: number;
+  toppings: number;
+  syrup: number;
+  mix: number;
+  lid: number;
 }
 
 // ----------------------------------------------------------
@@ -150,4 +179,3 @@ export interface SceneState {
   dialogue: DialogueState;
   lastSpeakerId: string | null;
 }
-

@@ -1,0 +1,97 @@
+"use client";
+
+import { useRef, useState, useCallback } from "react";
+import type { ItemCallbacks } from "../../components/DraggableItem";
+import {
+  MachineSlot, StationLayout, BottomBar,
+  TrashZone, SendZone, StorageBay,
+} from "../../components/station-shared";
+import { useBoba } from "../../src/boba-context";
+import type { Cup } from "../../src/types";
+
+export default function MixTab() {
+  const { mixCups, setMix, setLid, trashMixCup, forwardToCheckout } = useBoba();
+  const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
+
+  const [mixSlotCupId, setMixSlotCupId] = useState<string | null>(null);
+  const [lidSlotCupId, setLidSlotCupId] = useState<string | null>(null);
+
+  const getCup = (id: string | null): Cup | null =>
+    id ? (mixCups.find((c) => c.id === id) ?? null) : null;
+
+  const mixSlotCup = getCup(mixSlotCupId);
+  const lidSlotCup = getCup(lidSlotCupId);
+  const storedCups = mixCups.filter(
+    (c) => c.id !== mixSlotCupId && c.id !== lidSlotCupId
+  );
+
+  const clearSlotFor = useCallback((cupId: string) => {
+    if (cupId === mixSlotCupId) setMixSlotCupId(null);
+    if (cupId === lidSlotCupId) setLidSlotCupId(null);
+  }, [mixSlotCupId, lidSlotCupId]);
+
+  const handleMixSlotDrop = useCallback((id: string) => {
+    clearSlotFor(id);
+    if (mixSlotCup) setMixSlotCupId(null);
+    setMixSlotCupId(id);
+  }, [clearSlotFor, mixSlotCup]);
+
+  const handleLidSlotDrop = useCallback((id: string) => {
+    clearSlotFor(id);
+    if (lidSlotCup) setLidSlotCupId(null);
+    setLidSlotCupId(id);
+  }, [clearSlotFor, lidSlotCup]);
+
+  const handleStorageDrop = useCallback((id: string) => { clearSlotFor(id); }, [clearSlotFor]);
+  const handleTrashDrop   = useCallback((id: string) => { clearSlotFor(id); trashMixCup(id); }, [clearSlotFor, trashMixCup]);
+  const handleSendDrop    = useCallback((id: string) => { clearSlotFor(id); forwardToCheckout(id); }, [clearSlotFor, forwardToCheckout]);
+
+  return (
+    <StationLayout
+      machinesArea={<>
+        <div>
+          <p><strong>Mix Machine</strong> (mini-game placeholder)</p>
+          <MachineSlot
+            slotCup={mixSlotCup}
+            returnCallbacks={returnCallbacks}
+            onDrop={handleMixSlotDrop}
+            onRemove={() => setMixSlotCupId(null)}
+          />
+          {mixSlotCup?.quality?.mix
+            ? <p>✓ mixed</p>
+            : <button disabled={!mixSlotCupId} onClick={() => mixSlotCupId && setMix(mixSlotCupId)}>Mix</button>
+          }
+        </div>
+
+        <div>
+          <p><strong>Lid Machine</strong> (mini-game placeholder)</p>
+          <MachineSlot
+            slotCup={lidSlotCup}
+            returnCallbacks={returnCallbacks}
+            onDrop={handleLidSlotDrop}
+            onRemove={() => setLidSlotCupId(null)}
+          />
+          {lidSlotCup?.quality?.lid
+            ? <p>✓ lid on</p>
+            : <button disabled={!lidSlotCupId} onClick={() => lidSlotCupId && setLid(lidSlotCupId)}>Seal Lid</button>
+          }
+        </div>
+      </>}
+
+      bottomBar={
+        <BottomBar
+          left={<TrashZone returnCallbacks={returnCallbacks} onDrop={handleTrashDrop} />}
+          center={<StorageBay cups={storedCups} returnCallbacks={returnCallbacks} onDrop={handleStorageDrop} label="incoming" />}
+          right={
+            <SendZone
+              label="→ checkout"
+              returnCallbacks={returnCallbacks}
+              validate={(id) => mixCups.some((c) => c.id === id)}
+              onDrop={handleSendDrop}
+            />
+          }
+        />
+      }
+    />
+  );
+}
