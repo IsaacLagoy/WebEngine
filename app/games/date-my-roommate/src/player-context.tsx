@@ -147,7 +147,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
 
-export function usePlayer() {
+export function useGameData() {
   const context = useContext(PlayerContext);
   if (!context) {
     throw new Error("usePlayer must be used inside PlayerProvider");

@@ -8,6 +8,7 @@ import {
   TrashZone, SendZone, StorageBay,
 } from "../../components/station-shared";
 import { useBoba } from "../../src/boba-context";
+import { placeholderQuality } from "../../src/placeholderQuality";
 import type { Cup } from "../../src/types";
 import { DRINK_ITEMS, SYRUP_ITEMS } from "../../src/types";
 
@@ -20,8 +21,7 @@ export default function DrinkTab() {
   const [selectedBase,   setSelectedBase]   = useState("");
   const [selectedSyrup,  setSelectedSyrup]  = useState("");
 
-  const getCup = (id: string | null): Cup | null =>
-    id ? (drinkCups.find((c) => c.id === id) ?? null) : null;
+  const getCup = (id: string | null): Cup | null => id ? (drinkCups.find((c) => c.id === id) ?? null) : null;
 
   const baseSlotCup  = getCup(baseSlotCupId);
   const syrupSlotCup = getCup(syrupSlotCupId);
@@ -75,13 +75,13 @@ export default function DrinkTab() {
   const handlePourBase = () => {
     if (!baseSlotCupId || !selectedBase || baseSlotCup?.base) return;
     const drink = DRINK_ITEMS.find((d) => d.name === selectedBase);
-    if (drink) setBase(baseSlotCupId, drink);
+    if (drink) setBase(baseSlotCupId, drink, placeholderQuality());
   };
 
   const handleAddSyrup = () => {
     if (!syrupSlotCupId || !selectedSyrup || !syrupSlotCup?.base) return;
     const syrup = SYRUP_ITEMS.find((s) => s.name === selectedSyrup);
-    if (syrup) setSyrup(syrupSlotCupId, syrup);
+    if (syrup) setSyrup(syrupSlotCupId, syrup, placeholderQuality());
   };
 
   const basePourDisabled  = !baseSlotCupId  || !selectedBase  || !!baseSlotCup?.base;

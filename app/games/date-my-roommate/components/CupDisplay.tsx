@@ -13,8 +13,8 @@ export default function CupDisplay({ cup }: { cup: Cup }) {
   if (cup.syrup) parts.push(`+${cup.syrup.name}`);
   if (cup.toppings.length > 0)
     parts.push(cup.toppings.map((e) => `${e.quantity}×${e.topping.name}`).join(", "));
-  if (cup.quality?.mix) parts.push("[mixed]");
-  if (cup.quality?.lid) parts.push("[lid]");
+  if (cup.quality.mix > 0) parts.push("[mixed]");
+  if (cup.quality.lid > 0) parts.push("[lid]");
 
   return (
     <span style={{ fontFamily: "monospace", fontSize: 13 }}>

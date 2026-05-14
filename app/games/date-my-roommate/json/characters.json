@@ -1,0 +1,16 @@
+[
+    {
+        "id": "jackson",
+        "name": "Jackson",
+        "imageSrc": "/images/isaac/isaac_research.png",
+        "disposition": 50,
+        "nameColor": "#90c8ff"
+    },
+    {
+        "id": "isaac",
+        "name": "Isaac",
+        "imageSrc": "/images/isaac/isaac_research.png",
+        "disposition": 50,
+        "nameColor": "#c4a8ff"
+    }
+]

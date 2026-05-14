@@ -38,12 +38,20 @@ export const DEFAULT_PLAYER: Player = {
 // Character
 // ----------------------------------------------------------
 
-export interface Character {
+export class Character {
   id: string;
   name: string;
   imageSrc: string;
   disposition?: number;
   nameColor?: string;
+
+  constructor(id: string, name: string, imageSrc: string, disposition?: number, nameColor?: string) {
+    this.id = id;
+    this.name = name;
+    this.imageSrc = imageSrc;
+    this.disposition = disposition;
+    this.nameColor = nameColor;
+  }
 }
 
 export interface SceneCharacter {
@@ -62,6 +70,8 @@ export interface DialogueState {
   speakerName: string;
   speakerColor: string;
   text: string;
+  textColor?: string; // overrides default dialogue text color (speaker line uses speakerColor)
+  panelBg?: string; // overrides default dialogue panel background
 }
 
 // ----------------------------------------------------------
@@ -138,24 +148,71 @@ export class Boba {
   }
 }
 
+/** A ticketed order from the counter (customer + what they ordered). */
+export interface OrderTicket {
+  boba: Boba;
+  customer: Character;
+}
+
 /**
  * An in-progress cup moving through the shop stations.
  * Pure in-memory — never persisted.
  */
-export interface Cup {
-  id: string;
-  base?: Drink;
-  syrup?: Syrup;
-  toppings: ToppingEntry[];
-  quality?: BobaQuality;
-}
-
 export interface BobaQuality {
   base: number;
   toppings: number;
   syrup: number;
   mix: number;
   lid: number;
+}
+
+export class Cup {
+  id: string;
+  base?: Drink;
+  syrup?: Syrup;
+  toppings: ToppingEntry[];
+  quality: BobaQuality;
+
+  constructor(id: string) {
+    this.id = id;
+    this.toppings = [];
+
+    this.quality = {
+      base: 0,
+      toppings: 0,
+      syrup: 0,
+      mix: 0,
+      lid: 0,
+    };
+  }
+
+  public setBase(base: Drink, quality: number) {
+    this.base = base;
+    this.quality.base = quality;
+  }
+
+  public setSyrup(syrup: Syrup, quality: number) {
+    this.syrup = syrup;
+    this.quality.syrup = quality;
+  }
+
+  public addTopping(topping: Topping, quality: number) {
+    const existing = this.toppings.find((e) => e.topping.name === topping.name);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      this.toppings.push({ topping, quantity: 1 });
+    }
+    this.quality.toppings += quality;
+  }
+
+  public setMix(quality: number) {
+    this.quality.mix = quality;
+  }
+
+  public setLid(quality: number) {
+    this.quality.lid = quality;
+  }
 }
 
 // ----------------------------------------------------------

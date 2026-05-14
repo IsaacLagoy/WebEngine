@@ -83,7 +83,7 @@ export function StationLayout({
 }) {
   return (
     <div style={{ height: "100%", display: "grid", gridTemplateRows: "1fr auto", overflow: "hidden" }}>
-      <div style={{ padding: 24, overflowY: "auto", display: "flex", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ padding: 24, overflowY: "auto", display: "flex", gap: 20, flexWrap: "wrap", height: "100%", boxSizing: "border-box" }}>
         {machinesArea}
       </div>
       {bottomBar}

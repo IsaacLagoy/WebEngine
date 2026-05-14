@@ -9,9 +9,18 @@ interface SceneProps {
   onDialogueAdvance?: () => void;
   /** Optional background image URL or CSS gradient string. */
   background?: string;
+  /** Branching choices (dialogue engine {@link DialogueSelect}) */
+  dialogueChoiceLabels?: string[] | null;
+  onDialoguePickChoice?: (index: number) => void;
 }
 
-export function Scene({ state, onDialogueAdvance, background }: SceneProps) {
+export function Scene({
+  state,
+  onDialogueAdvance,
+  background,
+  dialogueChoiceLabels,
+  onDialoguePickChoice,
+}: SceneProps) {
   const { characters, dialogue, lastSpeakerId } = state;
 
   // Split characters into left / right slots for layout
@@ -54,7 +63,12 @@ export function Scene({ state, onDialogueAdvance, background }: SceneProps) {
       </div>
 
       {/* Dialogue box sits in front of everything */}
-      <DialogueBox dialogue={dialogue} onAdvance={onDialogueAdvance} />
+      <DialogueBox
+        dialogue={dialogue}
+        onAdvance={onDialogueAdvance}
+        choiceLabels={dialogueChoiceLabels}
+        onPickChoice={onDialoguePickChoice}
+      />
     </div>
   );
 }

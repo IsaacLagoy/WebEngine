@@ -6,6 +6,8 @@ const initialDialogue: DialogueState = {
   speakerName: "",
   speakerColor: "#ffffff",
   text: "",
+  textColor: undefined,
+  panelBg: undefined,
 };
 
 export function useScene() {
@@ -17,7 +19,7 @@ export function useScene() {
 
   /**
    * Slide a character onto the scene from the given side.
-   * If they are already in the scene this is a no-op.
+   * If they are already in the scene, updates their slot (side / in) and focus.
    */
   const enterScene = useCallback((character: Character, side: Side) => {
     setState((prev) => {
@@ -40,7 +42,12 @@ export function useScene() {
           },
         },
         lastSpeakerId: character.id,
-        dialogue: { ...prev.dialogue, visible: false },
+        dialogue: {
+          ...prev.dialogue,
+          visible: false,
+          textColor: undefined,
+          panelBg: undefined,
+        },
       };
     });
   }, []);
@@ -91,9 +98,111 @@ export function useScene() {
           speakerName: speaker.character.name,
           speakerColor: speaker.character.nameColor ?? "#ffffff",
           text,
+          textColor: undefined,
+          panelBg: undefined,
         },
       };
     });
+  }, []);
+
+  /**
+   * Dialogue line with full speaker resolution (in-scene character, "You", or narrator).
+   * Optional `color` / `bg` override name tag and panel (per DialogueStep).
+   */
+  const speakLine = useCallback(
+    (args: {
+      speaker: Character | "yn" | null;
+      text: string;
+      color?: string;
+      bg?: string;
+    }) => {
+      const { speaker, text, color, bg } = args;
+      setState((prev) => {
+        if (speaker && speaker !== "yn") {
+          const sid = speaker.id;
+          const sc = prev.characters[sid];
+          if (!sc) return prev;
+          const updatedCharacters = Object.fromEntries(
+            Object.entries(prev.characters).map(([id, s]) => [
+              id,
+              { ...s, isSpeaking: id === sid },
+            ])
+          );
+          return {
+            ...prev,
+            characters: updatedCharacters,
+            lastSpeakerId: sid,
+            dialogue: {
+              visible: true,
+              speakerName: sc.character.name,
+              speakerColor: color ?? sc.character.nameColor ?? "#ffffff",
+              text,
+              textColor: undefined,
+              panelBg: bg,
+            },
+          };
+        }
+
+        if (speaker === "yn") {
+          const updatedCharacters = Object.fromEntries(
+            Object.entries(prev.characters).map(([id, s]) => [
+              id,
+              { ...s, isSpeaking: false },
+            ])
+          );
+          return {
+            ...prev,
+            characters: updatedCharacters,
+            lastSpeakerId: null,
+            dialogue: {
+              visible: true,
+              speakerName: "You",
+              speakerColor: color ?? "#a8d4ff",
+              text,
+              textColor: undefined,
+              panelBg: bg,
+            },
+          };
+        }
+
+        const updatedCharacters = Object.fromEntries(
+          Object.entries(prev.characters).map(([id, s]) => [
+            id,
+            { ...s, isSpeaking: false },
+          ])
+        );
+        return {
+          ...prev,
+          characters: updatedCharacters,
+          lastSpeakerId: null,
+          dialogue: {
+            visible: true,
+            speakerName: "",
+            speakerColor: "#888888",
+            text,
+            textColor: undefined,
+            panelBg: bg,
+          },
+        };
+      });
+    },
+    []
+  );
+
+  /**
+   * Clear line content while keeping the box visible (e.g. before choice buttons).
+   */
+  const clearDialogueContent = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      dialogue: {
+        ...prev.dialogue,
+        visible: true,
+        speakerName: "",
+        text: "",
+        textColor: undefined,
+      },
+    }));
   }, []);
 
   /**
@@ -102,8 +211,21 @@ export function useScene() {
   const lowerDialogue = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      dialogue: { ...prev.dialogue, visible: false },
+      dialogue: {
+        ...prev.dialogue,
+        visible: false,
+        textColor: undefined,
+        panelBg: undefined,
+      },
     }));
+  }, []);
+
+  const resetScene = useCallback(() => {
+    setState({
+      characters: {},
+      dialogue: initialDialogue,
+      lastSpeakerId: null,
+    });
   }, []);
 
   return {
@@ -111,6 +233,9 @@ export function useScene() {
     enterScene,
     exitScene,
     speak,
+    speakLine,
+    clearDialogueContent,
     lowerDialogue,
+    resetScene,
   } as const;
 }

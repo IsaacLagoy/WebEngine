@@ -7,6 +7,7 @@ import {
   TrashZone, SendZone, StorageBay,
 } from "../../components/station-shared";
 import { useBoba } from "../../src/boba-context";
+import { placeholderQuality } from "../../src/placeholderQuality";
 import type { Cup } from "../../src/types";
 
 export default function MixTab() {
@@ -44,7 +45,22 @@ export default function MixTab() {
 
   const handleStorageDrop = useCallback((id: string) => { clearSlotFor(id); }, [clearSlotFor]);
   const handleTrashDrop   = useCallback((id: string) => { clearSlotFor(id); trashMixCup(id); }, [clearSlotFor, trashMixCup]);
-  const handleSendDrop    = useCallback((id: string) => { clearSlotFor(id); forwardToCheckout(id); }, [clearSlotFor, forwardToCheckout]);
+  const validateSend = useCallback(
+    (id: string): boolean => {
+      const cup = mixCups.find((c) => c.id === id);
+      return Boolean(cup && cup.quality.mix > 0 && cup.quality.lid > 0);
+    },
+    [mixCups]
+  );
+
+  const handleSendDrop = useCallback(
+    (id: string) => {
+      if (!validateSend(id)) return;
+      clearSlotFor(id);
+      forwardToCheckout(id);
+    },
+    [clearSlotFor, forwardToCheckout, validateSend]
+  );
 
   return (
     <StationLayout
@@ -57,9 +73,9 @@ export default function MixTab() {
             onDrop={handleMixSlotDrop}
             onRemove={() => setMixSlotCupId(null)}
           />
-          {mixSlotCup?.quality?.mix
+          {mixSlotCup && mixSlotCup.quality.mix > 0
             ? <p>✓ mixed</p>
-            : <button disabled={!mixSlotCupId} onClick={() => mixSlotCupId && setMix(mixSlotCupId)}>Mix</button>
+            : <button disabled={!mixSlotCupId} onClick={() => mixSlotCupId && setMix(mixSlotCupId, placeholderQuality())}>Mix</button>
           }
         </div>
 
@@ -71,9 +87,9 @@ export default function MixTab() {
             onDrop={handleLidSlotDrop}
             onRemove={() => setLidSlotCupId(null)}
           />
-          {lidSlotCup?.quality?.lid
+          {lidSlotCup && lidSlotCup.quality.lid > 0
             ? <p>✓ lid on</p>
-            : <button disabled={!lidSlotCupId} onClick={() => lidSlotCupId && setLid(lidSlotCupId)}>Seal Lid</button>
+            : <button disabled={!lidSlotCupId} onClick={() => lidSlotCupId && setLid(lidSlotCupId, placeholderQuality())}>Seal Lid</button>
           }
         </div>
       </>}
@@ -86,7 +102,7 @@ export default function MixTab() {
             <SendZone
               label="→ checkout"
               returnCallbacks={returnCallbacks}
-              validate={(id) => mixCups.some((c) => c.id === id)}
+              validate={validateSend}
               onDrop={handleSendDrop}
             />
           }

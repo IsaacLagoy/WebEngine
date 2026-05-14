@@ -1,0 +1,29 @@
+{
+    "order" : {
+        "start" : {
+            "speaker" : "yn",
+            "dialogue" : {
+                "tl" : {
+                    "text" : "",
+                    "color" : null,
+                    "func" : null
+                },
+                "tr" : {
+                    "text" : "",
+                    "color" : null,
+                    "func" : null
+                },
+                "bl" : {
+                    "text" : "",
+                    "color" : null,
+                    "func" : null
+                },
+                "br" : {
+                    "text" : "",
+                    "color" : null,
+                    "func" : null
+                }
+            }
+        }
+    }
+}

@@ -9,6 +9,7 @@ import {
   TrashZone, SendZone, StorageBay,
 } from "../../components/station-shared";
 import { useBoba } from "../../src/boba-context";
+import { placeholderQuality } from "../../src/placeholderQuality";
 import { TOPPING_ITEMS } from "../../src/types";
 
 export default function ToppingsTab() {
@@ -25,7 +26,7 @@ export default function ToppingsTab() {
   const handleToppingDrop = useCallback((id: string) => {
     if (!workCupId) return;
     const topping = TOPPING_ITEMS.find((t) => t.name === id);
-    if (topping) addTopping(workCupId, topping);
+    if (topping) addTopping(workCupId, topping, placeholderQuality());
   }, [workCupId, addTopping]);
 
   const handleStorageDrop = useCallback((id: string) => {
