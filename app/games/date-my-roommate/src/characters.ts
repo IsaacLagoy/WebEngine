@@ -1,10 +1,8 @@
+import type { DateMyRoommateGame } from "./game/DateMyRoommateGame";
 import { Character } from "./types";
 
 const portrait = "/images/isaac/isaac_research.png";
 
-// TODO, change this to json file
-
-/** Two rotating customers until dedicated assets / JSON exist. */
 export const BOBA_CUSTOMER_ALEX = new Character(
   "boba_customer_alex",
   "Alex",
@@ -25,3 +23,9 @@ export const BOBA_CUSTOMER_ROSTER: Character[] = [
   BOBA_CUSTOMER_ALEX,
   BOBA_CUSTOMER_JORDAN,
 ];
+
+export function registerBobaCustomers(game: DateMyRoommateGame): void {
+  for (const customer of BOBA_CUSTOMER_ROSTER) {
+    game.upsertCharacter(customer);
+  }
+}

@@ -6,19 +6,19 @@ import {
   MachineSlot, StationLayout, BottomBar,
   TrashZone, SendZone, StorageBay,
 } from "../../components/station-shared";
-import { useBoba } from "../../src/boba-context";
+import { useGame } from "../../src/game-context";
 import { placeholderQuality } from "../../src/placeholderQuality";
 import type { Cup } from "../../src/types";
 
 export default function MixTab() {
-  const { mixCups, setMix, setLid, trashMixCup, forwardToCheckout } = useBoba();
+  const { boba } = useGame();
+  const { mixCups, setMix, setLid, trashMixCup, forwardToCheckout } = boba;
   const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
 
   const [mixSlotCupId, setMixSlotCupId] = useState<string | null>(null);
   const [lidSlotCupId, setLidSlotCupId] = useState<string | null>(null);
 
-  const getCup = (id: string | null): Cup | null =>
-    id ? (mixCups.find((c) => c.id === id) ?? null) : null;
+  const getCup = (id: string | null): Cup | null => id ? (mixCups.find((c) => c.id === id) ?? null) : null;
 
   const mixSlotCup = getCup(mixSlotCupId);
   const lidSlotCup = getCup(lidSlotCupId);
@@ -31,12 +31,14 @@ export default function MixTab() {
     if (cupId === lidSlotCupId) setLidSlotCupId(null);
   }, [mixSlotCupId, lidSlotCupId]);
 
+  // TODO: replace this with minigame
   const handleMixSlotDrop = useCallback((id: string) => {
     clearSlotFor(id);
     if (mixSlotCup) setMixSlotCupId(null);
     setMixSlotCupId(id);
   }, [clearSlotFor, mixSlotCup]);
 
+  // TODO: replace this with minigame
   const handleLidSlotDrop = useCallback((id: string) => {
     clearSlotFor(id);
     if (lidSlotCup) setLidSlotCupId(null);
@@ -45,6 +47,8 @@ export default function MixTab() {
 
   const handleStorageDrop = useCallback((id: string) => { clearSlotFor(id); }, [clearSlotFor]);
   const handleTrashDrop   = useCallback((id: string) => { clearSlotFor(id); trashMixCup(id); }, [clearSlotFor, trashMixCup]);
+
+  // check if cup can move to next station
   const validateSend = useCallback(
     (id: string): boolean => {
       const cup = mixCups.find((c) => c.id === id);

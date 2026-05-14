@@ -1,6 +1,5 @@
-import type { Boba, Cup } from "./types";
+import type { Boba, Cup } from "../../types";
 
-/** Strict match of built cup to a ticketed recipe (for serve validation). */
 export function cupMatchesOrder(cup: Cup, boba: Boba): boolean {
   if (!cup.base || cup.base.name !== boba.base.name) return false;
   if ((cup.syrup?.name ?? null) !== (boba.syrup?.name ?? null)) return false;

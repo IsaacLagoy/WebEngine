@@ -45,7 +45,13 @@ export class Character {
   disposition?: number;
   nameColor?: string;
 
-  constructor(id: string, name: string, imageSrc: string, disposition?: number, nameColor?: string) {
+  constructor(
+    id: string,
+    name: string,
+    imageSrc: string,
+    disposition?: number,
+    nameColor?: string
+  ) {
     this.id = id;
     this.name = name;
     this.imageSrc = imageSrc;

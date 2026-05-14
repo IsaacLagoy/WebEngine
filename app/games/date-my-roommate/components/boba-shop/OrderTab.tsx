@@ -1,17 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import { useBoba } from "../../src/boba-context";
-import { useDialoguePlayback } from "../../src/dialogue-playback-context";
+import { useGame } from "../../src/game-context";
 import { BOBA_CUSTOMER_ROSTER } from "../../src/characters";
-import {
-  buildOrderCounterScript,
-  makeRandomOrder,
-} from "./orderDialogueScript";
+import { makeRandomOrder } from "../../src/game/boba/makeRandomOrder";
 
 export default function OrderTab() {
-  const { orders, addOrder } = useBoba();
-  const playback = useDialoguePlayback();
+  const { game, boba } = useGame();
+  const { orders, addOrder } = boba;
   const rosterCursor = useRef(0);
 
   const startCounter = () => {
@@ -19,10 +15,12 @@ export default function OrderTab() {
       BOBA_CUSTOMER_ROSTER[rosterCursor.current % BOBA_CUSTOMER_ROSTER.length];
     rosterCursor.current += 1;
 
-    playback.resetScene();
-    playback.clearScript();
-    playback.queueScript(buildOrderCounterScript(customer, addOrder));
-    playback.advance();
+    const boba = makeRandomOrder();
+    game.startOrder({
+      customer,
+      boba,
+      onAddOrder: () => addOrder({ boba, customer }),
+    });
   };
 
   return (

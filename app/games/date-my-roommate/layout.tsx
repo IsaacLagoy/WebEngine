@@ -1,12 +1,7 @@
-import { PlayerProvider } from "./src/player-context";
-import { DialoguePlaybackProvider } from "./src/dialogue-playback-context";
+import { GameProvider } from "./src/game-context";
 
 export default function DateMyRoommateLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <PlayerProvider>
-      <DialoguePlaybackProvider>{children}</DialoguePlaybackProvider>
-    </PlayerProvider>
-  );
+  return <GameProvider>{children}</GameProvider>;
 }

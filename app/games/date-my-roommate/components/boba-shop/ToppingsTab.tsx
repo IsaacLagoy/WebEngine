@@ -8,12 +8,13 @@ import {
   CupItem, StationLayout, BottomBar,
   TrashZone, SendZone, StorageBay,
 } from "../../components/station-shared";
-import { useBoba } from "../../src/boba-context";
+import { useGame } from "../../src/game-context";
 import { placeholderQuality } from "../../src/placeholderQuality";
 import { TOPPING_ITEMS } from "../../src/types";
 
 export default function ToppingsTab() {
-  const { toppingsCups, addTopping, removeToppingEntry, trashToppingsCup, forwardToMix } = useBoba();
+  const { boba } = useGame();
+  const { toppingsCups, addTopping, removeToppingEntry, trashToppingsCup, forwardToMix } = boba;
   const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
   const [workCupId, setWorkCupId] = useState<string | null>(null);
 
@@ -22,12 +23,6 @@ export default function ToppingsTab() {
 
   const handleWorkCupDrop   = useCallback((id: string) => setWorkCupId(id), []);
   const handleWorkCupRemove = useCallback(() => setWorkCupId(null), []);
-
-  const handleToppingDrop = useCallback((id: string) => {
-    if (!workCupId) return;
-    const topping = TOPPING_ITEMS.find((t) => t.name === id);
-    if (topping) addTopping(workCupId, topping, placeholderQuality());
-  }, [workCupId, addTopping]);
 
   const handleStorageDrop = useCallback((id: string) => {
     if (id === workCupId) setWorkCupId(null);
@@ -42,6 +37,13 @@ export default function ToppingsTab() {
     if (id === workCupId) setWorkCupId(null);
     forwardToMix(id);
   }, [workCupId, forwardToMix]);
+
+  // TODO: replace this with minigame
+  const handleToppingDrop = useCallback((id: string) => {
+    if (!workCupId) return;
+    const topping = TOPPING_ITEMS.find((t) => t.name === id);
+    if (topping) addTopping(workCupId, topping, placeholderQuality());
+  }, [workCupId, addTopping]);
 
   return (
     <StationLayout

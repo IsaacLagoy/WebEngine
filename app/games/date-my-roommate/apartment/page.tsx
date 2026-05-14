@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DraggableItem, { type ItemCallbacks } from "../components/DraggableItem";
 import DropZone from "../components/DropZone";
-import { usePlayer } from "../src/player-context";
+import { useGame } from "../src/game-context";
 import type { Clothing, ClothingSlot } from "../src/types";
 import { CLOTHING_ITEMS, CLOTHING_SLOTS } from "../src/types";
 
@@ -17,7 +17,8 @@ function makeValidator(prefix: SlotPrefix) {
 export default function ApartmentPage() {
   const router = useRouter();
   const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
-  const { setClothing, saveProgress, player } = usePlayer();
+  const { game } = useGame();
+  const { player } = game;
   const [isReady, setIsReady] = useState(false);
 
   const getSlotFromId = (id: string): ClothingSlot | null => {
@@ -38,7 +39,7 @@ export default function ApartmentPage() {
 
   const handleBeginDay = () => {
     if (isReady) {
-      saveProgress();
+      game.saveProgress();
       router.push("/games/date-my-roommate/boba-shop");
       return;
     }
@@ -105,11 +106,11 @@ export default function ApartmentPage() {
               validate={makeValidator(prefix)}
               onDrop={(id, name) => {
                 const slot = getSlotFromId(id);
-                if (slot) { setClothing(slot, { id, name }); }
+                if (slot) { game.setClothing(slot, { id, name }); }
               }}
               onRemove={(id, name) => {
                 const slot = getSlotFromId(id);
-                if (slot) { setClothing(slot, null); }
+                if (slot) { game.setClothing(slot, null); }
               }}
             />
           ))}

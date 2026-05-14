@@ -9,19 +9,18 @@ import {
   StorageBay,
   MachineSlot,
 } from "../../components/station-shared";
-import { useBoba } from "../../src/boba-context";
-import { useDialoguePlayback } from "../../src/dialogue-playback-context";
-import { buildCheckoutServeScript } from "./checkoutDialogueScript";
+import { useGame } from "../../src/game-context";
+import { scoreServedDrink } from "../../src/game/boba/scoring";
 
 export default function CheckoutTab() {
+  const { game, boba } = useGame();
   const {
     checkoutCups,
     trashCheckoutCup,
     orders,
     activeRecipeIndex,
     removeOrderAt,
-  } = useBoba();
-  const checkoutDialogue = useDialoguePlayback();
+  } = boba;
   const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
   const [recipeSlotCupId, setRecipeSlotCupId] = useState<string | null>(null);
 
@@ -45,16 +44,18 @@ export default function CheckoutTab() {
     const orderIndex = activeRecipeIndex;
     const cupId = slotCup.id;
 
-    checkoutDialogue.resetScene();
-    checkoutDialogue.clearScript();
-    checkoutDialogue.queueScript(
-      buildCheckoutServeScript(ticket.customer, () => {
+    const score = scoreServedDrink(ticket.boba, slotCup);
+
+    game.startCheckout({
+      customer: ticket.customer,
+      score,
+      order: ticket.boba,
+      onComplete: () => {
         removeOrderAt(orderIndex);
         trashCheckoutCup(cupId);
         setRecipeSlotCupId(null);
-      })
-    );
-    checkoutDialogue.advance();
+      },
+    });
   };
 
   return (

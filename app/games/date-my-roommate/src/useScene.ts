@@ -239,3 +239,5 @@ export function useScene() {
     resetScene,
   } as const;
 }
+
+export type SceneApi = ReturnType<typeof useScene>;
