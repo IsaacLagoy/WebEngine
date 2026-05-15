@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   Cup,
+  type Character,
   type Drink,
   type OrderTicket,
   type Syrup,
@@ -42,6 +43,13 @@ export type BobaSession = {
   addOrder: (ticket: OrderTicket) => void;
   removeOrderAt: (index: number) => void;
 
+  customerRoster: Character[];
+  rosterCursor: number;
+  hasMoreCustomers: boolean;
+  isDayComplete: boolean;
+  initCustomerRoster: (roster: Character[]) => void;
+  takeNextCustomer: () => Character | null;
+
   activeRecipeIndex: number;
   setActiveRecipeIndex: Dispatch<SetStateAction<number>>;
 
@@ -57,7 +65,13 @@ export function useBobaSession(): BobaSession {
   const [mixCups, setMixCups] = useState<Cup[]>([]);
   const [checkoutCups, setCheckoutCups] = useState<Cup[]>([]);
   const [orders, setOrders] = useState<OrderTicket[]>([]);
+  const [customerRoster, setCustomerRoster] = useState<Character[]>([]);
+  const [rosterCursor, setRosterCursor] = useState(0);
+  const [ordersServedCount, setOrdersServedCount] = useState(0);
   const [activeRecipeIndex, setActiveRecipeIndex] = useState(0);
+
+  const customerRosterRef = useRef<Character[]>([]);
+  const rosterCursorRef = useRef(0);
 
   const drinkRef = useRef(drinkCups);
   const toppingsRef = useRef(toppingsCups);
@@ -201,7 +215,33 @@ export function useBobaSession(): BobaSession {
 
   const removeOrderAt = useCallback((index: number) => {
     setOrders((prev) => prev.filter((_, i) => i !== index));
+    setOrdersServedCount((n) => n + 1);
   }, []);
+
+  const initCustomerRoster = useCallback((roster: Character[]) => {
+    customerRosterRef.current = roster;
+    rosterCursorRef.current = 0;
+    setCustomerRoster(roster);
+    setRosterCursor(0);
+    setOrdersServedCount(0);
+  }, []);
+
+  const takeNextCustomer = useCallback((): Character | null => {
+    const roster = customerRosterRef.current;
+    const index = rosterCursorRef.current;
+    if (index >= roster.length) return null;
+    const customer = roster[index]!;
+    rosterCursorRef.current = index + 1;
+    setRosterCursor(index + 1);
+    return customer;
+  }, []);
+
+  const hasMoreCustomers = rosterCursor < customerRoster.length;
+  const isDayComplete =
+    customerRoster.length > 0 &&
+    !hasMoreCustomers &&
+    orders.length === 0 &&
+    ordersServedCount >= customerRoster.length;
 
   const trashCheckoutCup = useCallback((cupId: string) => {
     setCheckoutCups((prev) => prev.filter((c) => c.id !== cupId));
@@ -213,6 +253,11 @@ export function useBobaSession(): BobaSession {
     setMixCups([]);
     setCheckoutCups([]);
     setOrders([]);
+    customerRosterRef.current = [];
+    rosterCursorRef.current = 0;
+    setCustomerRoster([]);
+    setRosterCursor(0);
+    setOrdersServedCount(0);
     setActiveRecipeIndex(0);
   }, []);
 
@@ -237,6 +282,12 @@ export function useBobaSession(): BobaSession {
       orders,
       addOrder,
       removeOrderAt,
+      customerRoster,
+      rosterCursor,
+      hasMoreCustomers,
+      isDayComplete,
+      initCustomerRoster,
+      takeNextCustomer,
       activeRecipeIndex,
       setActiveRecipeIndex,
       checkoutCups,
@@ -263,6 +314,13 @@ export function useBobaSession(): BobaSession {
       orders,
       addOrder,
       removeOrderAt,
+      customerRoster,
+      rosterCursor,
+      hasMoreCustomers,
+      isDayComplete,
+      initCustomerRoster,
+      takeNextCustomer,
+      ordersServedCount,
       activeRecipeIndex,
       checkoutCups,
       trashCheckoutCup,

@@ -1,0 +1,40 @@
+[
+    {
+        "name": "T-Shirt",
+        "price": 10,
+        "type": "top"
+    },
+
+    {
+        "name": "Pants",
+        "price": 10,
+        "type": "bottom"
+    },
+    {
+        "name": "Shoes",
+        "price": 10,
+        "type": "shoes"
+    },
+
+    {
+        "name": "Hat",
+        "price": 10,
+        "type": "head"
+    },
+    {
+        "name": "Glasses",
+        "price": 10,
+        "type": "head"
+    },
+
+    {
+        "name": "Hamburger",
+        "price": 5,
+        "type": "gift"
+    },
+    {
+        "name": "iPhone17",
+        "price": 10,
+        "type": "gift"
+    }
+]

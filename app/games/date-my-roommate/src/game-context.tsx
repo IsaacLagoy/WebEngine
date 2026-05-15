@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import { Scene } from "../components/Scene";
 import "../scene.css";
 import { DateMyRoommateGame } from "./game/DateMyRoommateGame";
@@ -18,14 +19,21 @@ import {
   createDialoguePlayback,
   type SelectOption,
 } from "./game/dialogue/playback";
-import { GAME_DATA_STORAGE_KEY, safeParseGameData } from "./game/gameDataStorage";
-import { DEFAULT_GAME_DATA } from "./types";
+import { safeParseGameData } from "./game/gameDataStorage";
+import {
+  clearDateMyRoommatePersistedStorage,
+  loadDateMyRoommateGameDataJson,
+  persistDateMyRoommateGameData,
+} from "./storage/dateMyRoommateLocalStorage";
+import { createInitialGameData } from "./items/catalog";
+import type { GameData } from "./types";
 import { useScene } from "./useScene";
 
 const DIALOGUE_SCENE_BG = "rgba(36, 36, 38, 0.88)";
 
 export type GameContextValue = {
   game: DateMyRoommateGame;
+  gameData: GameData;
   boba: BobaSession;
   isLoaded: boolean;
   sceneState: ReturnType<typeof useScene>["state"];
@@ -65,9 +73,10 @@ function GameDialogueOverlay() {
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const scene = useScene();
   const boba = useBobaSession();
-  const [gameData, setGameData] = useState(DEFAULT_GAME_DATA);
+  const [gameData, setGameData] = useState(createInitialGameData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectOptions, setSelectOptions] = useState<SelectOption[] | null>(null);
   const [queueLength, setQueueLength] = useState(0);
@@ -75,22 +84,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const gameRef = useRef<DateMyRoommateGame | null>(null);
   if (!gameRef.current) {
-    gameRef.current = new DateMyRoommateGame(DEFAULT_GAME_DATA, setGameData);
+    gameRef.current = new DateMyRoommateGame(createInitialGameData(), setGameData);
   }
   const game = gameRef.current;
 
   game.attachBoba(boba);
 
   useEffect(() => {
-    const saved = safeParseGameData(window.localStorage.getItem(GAME_DATA_STORAGE_KEY));
+    const saved = safeParseGameData(loadDateMyRoommateGameDataJson());
     if (saved) game.replaceData(saved);
     setIsLoaded(true);
   }, [game]);
 
+  const isStoreRoute = pathname === "/games/date-my-roommate/store";
+
   useEffect(() => {
     if (!isLoaded) return;
-    window.localStorage.setItem(GAME_DATA_STORAGE_KEY, JSON.stringify(gameData));
-  }, [gameData, isLoaded]);
+    if (isStoreRoute) return;
+    persistDateMyRoommateGameData(gameData);
+  }, [gameData, isLoaded, isStoreRoute]);
 
   const syncQueueLength = useCallback(() => {
     setQueueLength(game.engine.length());
@@ -113,10 +125,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     game.attachPersistence({
       save: () => {
-        window.localStorage.setItem(GAME_DATA_STORAGE_KEY, JSON.stringify(game.gameData));
+        persistDateMyRoommateGameData(game.gameData);
       },
       reset: () => {
-        window.localStorage.removeItem(GAME_DATA_STORAGE_KEY);
+        clearDateMyRoommatePersistedStorage();
       },
     });
   }, [game]);
@@ -136,6 +148,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value = useMemo<GameContextValue>(
     () => ({
       game,
+      gameData,
       boba,
       isLoaded,
       sceneState: scene.state,
@@ -143,7 +156,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       overlayActive,
       pickOption,
     }),
-    [game, boba, isLoaded, scene.state, selectOptions, overlayActive, pickOption]
+    [game, gameData, boba, isLoaded, scene.state, selectOptions, overlayActive, pickOption]
   );
 
   return (

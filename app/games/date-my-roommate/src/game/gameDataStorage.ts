@@ -1,7 +1,33 @@
-import type { GameData, Player } from "../types";
+import type { GameData, Player, PlayerInventory, Clothing } from "../types";
 import { DEFAULT_GAME_DATA, DEFAULT_PLAYER } from "../types";
+import { getStarterInventory } from "../items/catalog";
 
-export const GAME_DATA_STORAGE_KEY = "date-my-roommate:game-data";
+function parseClothingEntry(raw: unknown): Clothing | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.id !== "string" || typeof o.name !== "string") return null;
+  return { id: o.id, name: o.name };
+}
+
+function parseOwnedGifts(raw: unknown): Record<string, number> {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "number" && Number.isFinite(v) && Number.isInteger(v) && v > 0) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function parseInventory(raw: unknown): PlayerInventory | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (!Array.isArray(o.ownedClothes)) return null;
+  const ownedClothes = o.ownedClothes.map(parseClothingEntry).filter(Boolean) as Clothing[];
+  const ownedGifts = parseOwnedGifts(o.ownedGifts);
+  return { ownedClothes, ownedGifts };
+}
 
 export function safeParseGameData(raw: string | null): GameData | null {
   if (!raw) return null;
@@ -21,10 +47,12 @@ export function safeParseGameData(raw: string | null): GameData | null {
         : DEFAULT_GAME_DATA.currentScene;
     const characters =
       parsed.characters && typeof parsed.characters === "object" ? parsed.characters : {};
+    const inventory = parseInventory(parsed.inventory) ?? getStarterInventory();
     return {
       player: { money, clothing },
       currentScene,
       characters,
+      inventory,
     };
   } catch {
     return null;

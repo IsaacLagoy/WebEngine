@@ -32,6 +32,9 @@ export default function CheckoutTab() {
     [trashCheckoutCup]
   );
 
+  const handleStorageDrop = useCallback((id: string) => {
+    setRecipeSlotCupId((cur) => (cur === id ? null : cur));
+  }, []);
   const ticket = orders[activeRecipeIndex] ?? null;
   const slotCup = recipeSlotCupId
     ? checkoutCups.find((c) => c.id === recipeSlotCupId) ?? null
@@ -45,12 +48,14 @@ export default function CheckoutTab() {
     const cupId = slotCup.id;
 
     const score = scoreServedDrink(ticket.boba, slotCup);
+    const payout = ticket.boba.price + score * 2;
 
     game.startCheckout({
       customer: ticket.customer,
       score,
       order: ticket.boba,
       onComplete: () => {
+        game.addMoney(payout);
         removeOrderAt(orderIndex);
         trashCheckoutCup(cupId);
         setRecipeSlotCupId(null);
@@ -146,7 +151,7 @@ export default function CheckoutTab() {
               <StorageBay
                 cups={cupsForBay}
                 returnCallbacks={returnCallbacks}
-                onDrop={() => {}}
+                onDrop={handleStorageDrop}
                 label="ready"
               />
             }

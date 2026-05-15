@@ -1,8 +1,17 @@
 import type { DialogueStep } from "./dialogue/engine";
 import { DialogueEngine } from "./dialogue/engine";
 import type { BobaSession } from "./boba/session";
-import type { Boba, Character, Clothing, ClothingSlot, GameData, Player } from "../types";
-import { DEFAULT_GAME_DATA } from "../types";
+import type {
+  Boba,
+  Character,
+  Clothing,
+  ClothingSlot,
+  GameData,
+  Gift,
+  Player,
+  PlayerInventory,
+} from "../types";
+import { createInitialGameData, type ShopListingRow } from "../items/catalog";
 import { buildCheckoutInteraction } from "./dialogue/interactions/checkout";
 import { buildOrderInteraction } from "./dialogue/interactions/order";
 import type { createDialoguePlayback } from "./dialogue/playback";
@@ -22,7 +31,7 @@ export class DateMyRoommateGame {
   private persistence: GamePersistence | null = null;
   private readonly onDataChange?: (data: GameData) => void;
 
-  constructor(initialData: GameData = DEFAULT_GAME_DATA, onDataChange?: (data: GameData) => void) {
+  constructor(initialData: GameData = createInitialGameData(), onDataChange?: (data: GameData) => void) {
     this.data = initialData;
     this.onDataChange = onDataChange;
   }
@@ -92,6 +101,60 @@ export class DateMyRoommateGame {
     });
   }
 
+  setInventory(inventory: PlayerInventory): void {
+    this.commit({ ...this.data, inventory });
+  }
+
+  addOwnedClothing(item: Clothing): void {
+    if (this.data.inventory.ownedClothes.some((c) => c.id === item.id)) return;
+    this.commit({
+      ...this.data,
+      inventory: {
+        ...this.data.inventory,
+        ownedClothes: [...this.data.inventory.ownedClothes, item],
+      },
+    });
+  }
+
+  addOwnedGift(gift: Gift, amount = 1): void {
+    if (amount < 1) return;
+    const ownedGifts = { ...this.data.inventory.ownedGifts };
+    ownedGifts[gift.id] = (ownedGifts[gift.id] ?? 0) + amount;
+    this.commit({
+      ...this.data,
+      inventory: {
+        ...this.data.inventory,
+        ownedGifts,
+      },
+    });
+  }
+
+  /** One transaction: deduct price and add listing to inventory. Returns false if unaffordable or clothing already owned. */
+  tryPurchaseStoreListing(row: ShopListingRow): boolean {
+    if (this.data.player.money < row.price) return false;
+    const nextMoney = this.data.player.money - row.price;
+    if (row.type === "gift") {
+      const ownedGifts = { ...this.data.inventory.ownedGifts };
+      ownedGifts[row.id] = (ownedGifts[row.id] ?? 0) + 1;
+      this.commit({
+        ...this.data,
+        player: { ...this.data.player, money: nextMoney },
+        inventory: { ...this.data.inventory, ownedGifts },
+      });
+      return true;
+    }
+    if (this.data.inventory.ownedClothes.some((c) => c.id === row.id)) return false;
+    this.commit({
+      ...this.data,
+      player: { ...this.data.player, money: nextMoney },
+      inventory: {
+        ...this.data.inventory,
+        ownedClothes: [...this.data.inventory.ownedClothes, { id: row.id, name: row.name }],
+      },
+    });
+    return true;
+  }
+
   setCurrentScene(scene: string): void {
     this.commit({ ...this.data, currentScene: scene });
   }
@@ -104,7 +167,7 @@ export class DateMyRoommateGame {
   }
 
   resetProgress(): void {
-    this.commit(DEFAULT_GAME_DATA);
+    this.commit(createInitialGameData());
     this.persistence?.reset();
   }
 

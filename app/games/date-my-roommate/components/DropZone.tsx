@@ -169,7 +169,7 @@ export default function DropZone({
         </span>
       )}
 
-      {/* Legacy "stay"-variant placed item (used by apartment clothing equip) */}
+      {/* Placed item chip (stay variant — e.g. apartment equipment slots) */}
       {placedItem && (
         <div
           draggable

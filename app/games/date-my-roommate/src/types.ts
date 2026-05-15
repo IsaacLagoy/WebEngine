@@ -9,16 +9,13 @@ export interface Clothing {
   name: string;
 }
 
+export interface Gift {
+  id: string;
+  name: string;
+}
+
 export const CLOTHING_SLOTS = ["head", "top", "bottom", "shoes"] as const;
 export type ClothingSlot = (typeof CLOTHING_SLOTS)[number];
-
-export const CLOTHING_ITEMS: Clothing[] = [
-  { id: "head_1", name: "🎩 Top Hat" },
-  { id: "head_2", name: "🕶️ Shades" },
-  { id: "top_1",  name: "👕 T-Shirt" },
-  { id: "bottom_1", name: "👖 Pants" },
-  { id: "shoes_1", name: "👟 Sneakers" },
-];
 
 // ----------------------------------------------------------
 // Player
@@ -29,9 +26,19 @@ export interface Player {
   money: number;
 }
 
+export interface PlayerInventory {
+  ownedClothes: Clothing[];
+  ownedGifts: Record<string, number>;
+}
+
 export const DEFAULT_PLAYER: Player = {
   clothing: {},
   money: 0,
+};
+
+export const DEFAULT_INVENTORY: PlayerInventory = {
+  ownedClothes: [],
+  ownedGifts: {},
 };
 
 // ----------------------------------------------------------
@@ -44,19 +51,22 @@ export class Character {
   imageSrc: string;
   disposition?: number;
   nameColor?: string;
+  appearanceChance: number;
 
   constructor(
     id: string,
     name: string,
     imageSrc: string,
     disposition?: number,
-    nameColor?: string
+    nameColor?: string,
+    appearanceChance = 0.75
   ) {
     this.id = id;
     this.name = name;
     this.imageSrc = imageSrc;
     this.disposition = disposition;
     this.nameColor = nameColor;
+    this.appearanceChance = appearanceChance;
   }
 }
 
@@ -228,12 +238,14 @@ export class Cup {
 export interface GameData {
   characters: Record<string, Character>;
   player: Player;
+  inventory: PlayerInventory;
   currentScene: string;
 }
 
 export const DEFAULT_GAME_DATA: GameData = {
   characters: {},
   player: DEFAULT_PLAYER,
+  inventory: DEFAULT_INVENTORY,
   currentScene: "apartment",
 };
 

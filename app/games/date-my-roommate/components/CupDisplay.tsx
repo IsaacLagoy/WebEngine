@@ -3,6 +3,8 @@
  *
  * Plain text representation of a cup's contents.
  * No visual styling — just shows what's in the cup.
+ * 
+ * TODO: add graphics for the cup and what's in it
  */
 
 import type { Cup } from "../src/types";

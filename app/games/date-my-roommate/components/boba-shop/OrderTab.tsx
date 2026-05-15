@@ -1,25 +1,21 @@
 "use client";
 
-import { useRef } from "react";
 import { useGame } from "../../src/game-context";
-import { BOBA_CUSTOMER_ROSTER } from "../../src/characters";
 import { makeRandomOrder } from "../../src/game/boba/makeRandomOrder";
 
 export default function OrderTab() {
   const { game, boba } = useGame();
-  const { orders, addOrder } = boba;
-  const rosterCursor = useRef(0);
+  const { orders, addOrder, hasMoreCustomers, takeNextCustomer } = boba;
 
   const startCounter = () => {
-    const customer =
-      BOBA_CUSTOMER_ROSTER[rosterCursor.current % BOBA_CUSTOMER_ROSTER.length];
-    rosterCursor.current += 1;
+    const customer = takeNextCustomer();
+    if (!customer) return;
 
-    const boba = makeRandomOrder();
+    const order = makeRandomOrder();
     game.startOrder({
       customer,
-      boba,
-      onAddOrder: () => addOrder({ boba, customer }),
+      boba: order,
+      onAddOrder: () => addOrder({ boba: order, customer }),
     });
   };
 
@@ -35,17 +31,19 @@ export default function OrderTab() {
         boxSizing: "border-box",
       }}
     >
-      <div
-        style={{
-          marginBottom: 16,
-          paddingBottom: 12,
-          borderBottom: "1px solid #eee",
-        }}
-      >
-        <button type="button" onClick={startCounter}>
-          Next customer
-        </button>
-      </div>
+      {hasMoreCustomers && (
+        <div
+          style={{
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: "1px solid #eee",
+          }}
+        >
+          <button type="button" onClick={startCounter}>
+            Next customer
+          </button>
+        </div>
+      )}
 
       <h2 style={{ marginTop: 0 }}>Orders</h2>
       {orders.length === 0 && <p style={{ color: "#888" }}>No orders yet.</p>}
@@ -78,29 +76,6 @@ export default function OrderTab() {
           </span>
         </div>
       ))}
-
-      <div
-        style={{
-          paddingTop: 12,
-          borderTop: "1px solid #eee",
-          marginTop: 8,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() =>
-            addOrder({
-              boba: makeRandomOrder(),
-              customer:
-                BOBA_CUSTOMER_ROSTER[
-                  Math.floor(Math.random() * BOBA_CUSTOMER_ROSTER.length)
-                ],
-            })
-          }
-        >
-          + Add random order (no dialogue)
-        </button>
-      </div>
     </div>
   );
 }

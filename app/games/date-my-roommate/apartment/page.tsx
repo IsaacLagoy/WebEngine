@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import DraggableItem, { type ItemCallbacks } from "../components/DraggableItem";
 import DropZone from "../components/DropZone";
 import { useGame } from "../src/game-context";
-import type { Clothing, ClothingSlot } from "../src/types";
-import { CLOTHING_ITEMS, CLOTHING_SLOTS } from "../src/types";
+import { SCENE_APARTMENT, SCENE_BOBA_SHOP } from "../src/game/scenePaths";
+import { getCatalogNameById } from "../src/items/catalog";
+import type { ClothingSlot } from "../src/types";
+import { CLOTHING_SLOTS } from "../src/types";
 
 type SlotPrefix = typeof CLOTHING_SLOTS[number];
 
@@ -17,37 +19,39 @@ function makeValidator(prefix: SlotPrefix) {
 export default function ApartmentPage() {
   const router = useRouter();
   const returnCallbacks = useRef<Map<string, ItemCallbacks>>(new Map());
-  const { game } = useGame();
-  const { player } = game;
-  const [isReady, setIsReady] = useState(false);
+  const { game, gameData } = useGame();
+  const { player, inventory } = gameData;
+  const isReady = Boolean(player.clothing.top && player.clothing.bottom && player.clothing.shoes);
 
+  useEffect(() => {
+    game.setCurrentScene(SCENE_APARTMENT);
+  }, [game]);
   const getSlotFromId = (id: string): ClothingSlot | null => {
     const [prefix] = id.split("_");
     return CLOTHING_SLOTS.some((slot) => slot === prefix) ? (prefix as ClothingSlot) : null;
   };
 
   useEffect(() => {
-    for (const item of CLOTHING_ITEMS) {
+    for (const item of inventory.ownedClothes) {
       const isEquipped = Object.values(player.clothing).some((equipped) => equipped?.id === item.id);
       returnCallbacks.current.get(item.id)?.setPlaced(isEquipped);
     }
-  }, [player.clothing]);
-
-  useEffect(() => {
-    setIsReady(Boolean(player.clothing.top && player.clothing.bottom && player.clothing.shoes));
-  }, [player.clothing]);
+  }, [player.clothing, inventory.ownedClothes]);
 
   const handleBeginDay = () => {
-    if (isReady) {
+    const clothing = game.player.clothing;
+    const ready = Boolean(clothing.top && clothing.bottom && clothing.shoes);
+    if (ready) {
+      game.setCurrentScene(SCENE_BOBA_SHOP);
       game.saveProgress();
       router.push("/games/date-my-roommate/boba-shop");
       return;
     }
 
     const missing: string[] = [];
-    if (!player.clothing.top) missing.push("a top");
-    if (!player.clothing.bottom) missing.push("a bottom");
-    if (!player.clothing.shoes) missing.push("shoes");
+    if (!clothing.top) missing.push("a top");
+    if (!clothing.bottom) missing.push("a bottom");
+    if (!clothing.shoes) missing.push("shoes");
 
     // TODO: Add a modal to the UI to show the missing items
     // window.alert(`Oh no! It looks like you forgot ${missing.join(", ")}.`);
@@ -72,7 +76,7 @@ export default function ApartmentPage() {
         Begin Day
       </button>
       <div style={{ marginTop: "6px", fontSize: "12px", color: "#4a7090" }}>
-        Money: ${player.money}
+        Money: ${player.money.toFixed(2)}
       </div>
 
       <hr />
@@ -84,7 +88,7 @@ export default function ApartmentPage() {
 
         {/* Clothing items */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "24px" }}>
-          {CLOTHING_ITEMS.map((item) => (
+          {inventory.ownedClothes.map((item) => (
             <DraggableItem
               key={item.id}
               id={item.id}
@@ -115,6 +119,34 @@ export default function ApartmentPage() {
             />
           ))}
         </div>
+      </section>
+
+      <section style={{ marginBottom: "36px" }}>
+        <h3
+          style={{
+            fontSize: "13px",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "#4a90d9",
+            marginBottom: "16px",
+          }}
+        >
+          Gifts
+        </h3>
+        {Object.entries(inventory.ownedGifts).filter(([, qty]) => qty > 0).length === 0 ? (
+          <p style={{ margin: 0, fontSize: "13px", color: "#888" }}>No gifts in your inventory yet.</p>
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px", color: "#1a3a5c" }}>
+            {Object.entries(inventory.ownedGifts)
+              .filter(([, qty]) => qty > 0)
+              .map(([id, qty]) => (
+                <li key={id}>
+                  {getCatalogNameById(id)}
+                  {qty > 1 ? ` × ${qty}` : ""}
+                </li>
+              ))}
+          </ul>
+        )}
       </section>
     </div>
   );

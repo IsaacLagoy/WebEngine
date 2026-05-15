@@ -8,7 +8,8 @@ export const BOBA_CUSTOMER_ALEX = new Character(
   "Alex",
   portrait,
   50,
-  "#90c8ff"
+  "#90c8ff",
+  0.75
 );
 
 export const BOBA_CUSTOMER_JORDAN = new Character(
@@ -16,7 +17,8 @@ export const BOBA_CUSTOMER_JORDAN = new Character(
   "Jordan",
   portrait,
   55,
-  "#c4a8ff"
+  "#c4a8ff",
+  0.75
 );
 
 export const BOBA_CUSTOMER_ROSTER: Character[] = [
