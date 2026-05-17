@@ -1,0 +1,17 @@
+{
+  "id": "jordan-checkout-ending-select",
+  "steps": [
+    {
+      "kind": "select",
+      "options": [
+        {
+          "text": "Ask them on a date",
+          "queue": "jordan-checkout-date-accept",
+          "unavailableWhen": { "hasScheduledEvent": true },
+          "unavailableText": "You already made plans"
+        },
+        { "text": "Say goodbye", "queue": "jordan-checkout-farewell" }
+      ]
+    }
+  ]
+}

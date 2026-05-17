@@ -184,6 +184,21 @@
   border-color: rgba(210, 180, 255, 0.6);
 }
 
+.dialogue-choice-btn--disabled {
+  color: #888;
+  font-style: italic;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: rgba(20, 18, 28, 0.6);
+  border-color: rgba(120, 120, 120, 0.35);
+  opacity: 0.9;
+}
+
+.dialogue-choice-btn--disabled:hover {
+  background: rgba(20, 18, 28, 0.6);
+  border-color: rgba(120, 120, 120, 0.35);
+}
+
 /* ─────────────────────────────────────────
    Mobile layout  (≤ 640px)
    ───────────────────────────────────────── */

@@ -1,0 +1,10 @@
+{
+  "id": "jordan-checkout-reaction-good",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Okay, that's actually really good. You nailed it.\""
+    },
+    { "kind": "queue", "script": "jordan-checkout-ending" }
+  ]
+}

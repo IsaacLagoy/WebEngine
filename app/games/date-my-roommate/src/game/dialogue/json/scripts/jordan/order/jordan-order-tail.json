@@ -1,0 +1,13 @@
+{
+  "id": "jordan-order-tail",
+  "steps": [
+    { "kind": "call", "action": "speakCustomerOrder" },
+    { "kind": "call", "action": "order.add" },
+    {
+      "kind": "text",
+      "text": "\"Cool. I'll wait over there.\""
+    },
+    { "kind": "lower" },
+    { "kind": "exit" }
+  ]
+}

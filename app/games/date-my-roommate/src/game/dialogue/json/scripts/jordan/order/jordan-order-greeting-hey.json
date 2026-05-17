@@ -1,0 +1,10 @@
+{
+  "id": "jordan-order-greeting-hey",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Hey. Line's not too bad today, right?\""
+    },
+    { "kind": "queue", "script": "jordan-order-tail" }
+  ]
+}

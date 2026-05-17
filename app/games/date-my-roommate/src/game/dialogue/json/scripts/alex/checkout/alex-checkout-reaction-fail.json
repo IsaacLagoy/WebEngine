@@ -1,0 +1,10 @@
+{
+  "id": "alex-checkout-reaction-fail",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "Alex squints at the cup. \"…Did you even read the ticket?\""
+    },
+    { "kind": "queue", "script": "alex-checkout-ending" }
+  ]
+}

@@ -1,33 +1,24 @@
 import type { DateMyRoommateGame } from "./game/DateMyRoommateGame";
-import { Character } from "./types";
+import {
+  getBobaCustomerDefinitions,
+  getBobaCustomerRoster,
+  mergePersistedCharacter,
+} from "./characters/characterCatalog";
 
-const portrait = "/images/isaac/isaac_research.png";
+export {
+  getCharacterDefinitions,
+  getCharacterDefinitionById,
+  getCharacterDefinitionByName,
+  resolveCharacterDefinition,
+} from "./characters/characterCatalog";
 
-export const BOBA_CUSTOMER_ALEX = new Character(
-  "boba_customer_alex",
-  "Alex",
-  portrait,
-  50,
-  "#90c8ff",
-  0.75
-);
+export { resolveCharacterFromGame, requireCharacterFromGame } from "./characters/resolveCharacter";
 
-export const BOBA_CUSTOMER_JORDAN = new Character(
-  "boba_customer_jordan",
-  "Jordan",
-  portrait,
-  55,
-  "#c4a8ff",
-  0.75
-);
-
-export const BOBA_CUSTOMER_ROSTER: Character[] = [
-  BOBA_CUSTOMER_ALEX,
-  BOBA_CUSTOMER_JORDAN,
-];
+export const BOBA_CUSTOMER_ROSTER = getBobaCustomerRoster();
 
 export function registerBobaCustomers(game: DateMyRoommateGame): void {
-  for (const customer of BOBA_CUSTOMER_ROSTER) {
-    game.upsertCharacter(customer);
+  for (const def of getBobaCustomerDefinitions()) {
+    const saved = game.gameData.characters[def.id];
+    game.upsertCharacter(mergePersistedCharacter(def, saved));
   }
 }

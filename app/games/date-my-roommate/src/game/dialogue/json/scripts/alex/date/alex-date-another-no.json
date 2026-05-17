@@ -1,0 +1,10 @@
+{
+  "id": "alex-date-another-no",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"I don't think so. Take care.\""
+    },
+    { "kind": "queue", "script": "alex-date-farewell" }
+  ]
+}

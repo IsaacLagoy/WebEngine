@@ -1,0 +1,15 @@
+{
+  "id": "alex-order",
+  "steps": [
+    { "kind": "enter", "side": "right" },
+    {
+      "kind": "select",
+      "options": [
+        { "text": "Welcome in.", "queue": "alex-order-greeting-welcome" },
+        { "text": "hey", "queue": "alex-order-greeting-hey" },
+        { "text": "Oh, it's you.", "queue": "alex-order-greeting-known" },
+        { "text": "Let me guess your order...", "queue": "alex-order-greeting-guess" }
+      ]
+    }
+  ]
+}

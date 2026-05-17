@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame } from "../src/game-context";
 import { pathForCurrentScene, SCENE_APARTMENT, SCENE_STORE } from "../src/game/scenePaths";
-import { pickRandomStoreStock, type ShopListingRow } from "../src/items/catalog";
+import { getCatalogNameById, pickRandomStoreStock, type ShopListingRow } from "../src/items/catalog";
 
 const APARTMENT_PATH = pathForCurrentScene(SCENE_APARTMENT);
 
@@ -40,6 +40,9 @@ export default function StorePage() {
   );
 
   const money = gameData.player.money;
+  const { inventory } = gameData;
+
+  const giftRows = Object.entries(inventory.ownedGifts).filter(([, qty]) => qty > 0);
 
   return (
     <div
@@ -132,6 +135,31 @@ export default function StorePage() {
           })}
         </ul>
       )}
+
+      <section style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid #cce0f0" }}>
+        <h2
+          style={{
+            fontSize: "13px",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "#4a90d9",
+            margin: "0 0 16px",
+          }}
+        >
+          Your gifts
+        </h2>
+        {giftRows.length === 0 ? (
+          <p style={{ margin: 0, fontSize: "13px", color: "#888" }}>No gifts in your inventory yet.</p>
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px", color: "#1a3a5c" }}>
+            {giftRows.map(([id, qty]) => (
+              <li key={id}>
+                {getCatalogNameById(id)} x{qty}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

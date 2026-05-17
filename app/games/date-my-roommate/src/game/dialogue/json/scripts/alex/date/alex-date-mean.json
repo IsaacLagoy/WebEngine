@@ -1,0 +1,15 @@
+{
+  "id": "alex-date-mean",
+  "steps": [
+    {
+      "kind": "call",
+      "action": "flag.set",
+      "args": { "key": "wasNice", "value": false }
+    },
+    {
+      "kind": "text",
+      "text": "\"Wow. Okay then.\""
+    },
+    { "kind": "queue", "script": "alex-date-ending-select" }
+  ]
+}

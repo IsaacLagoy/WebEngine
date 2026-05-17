@@ -120,34 +120,6 @@ export default function ApartmentPage() {
           ))}
         </div>
       </section>
-
-      <section style={{ marginBottom: "36px" }}>
-        <h3
-          style={{
-            fontSize: "13px",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: "#4a90d9",
-            marginBottom: "16px",
-          }}
-        >
-          Gifts
-        </h3>
-        {Object.entries(inventory.ownedGifts).filter(([, qty]) => qty > 0).length === 0 ? (
-          <p style={{ margin: 0, fontSize: "13px", color: "#888" }}>No gifts in your inventory yet.</p>
-        ) : (
-          <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px", color: "#1a3a5c" }}>
-            {Object.entries(inventory.ownedGifts)
-              .filter(([, qty]) => qty > 0)
-              .map(([id, qty]) => (
-                <li key={id}>
-                  {getCatalogNameById(id)}
-                  {qty > 1 ? ` × ${qty}` : ""}
-                </li>
-              ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }

@@ -1,0 +1,18 @@
+{
+  "id": "jordan-date",
+  "steps": [
+    { "kind": "enter", "side": "left" },
+    {
+      "kind": "text",
+      "text": "\"Hey! Good to see you outside of work.\""
+    },
+    { "kind": "call", "action": "money.add", "args": { "delta": 5 } },
+    {
+      "kind": "text",
+      "text": "\"Here — get yourself something nice. I gotta run!\""
+    },
+    { "kind": "lower" },
+    { "kind": "exit" },
+    { "kind": "call", "action": "event.complete" }
+  ]
+}

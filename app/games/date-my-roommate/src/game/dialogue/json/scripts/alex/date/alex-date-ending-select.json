@@ -1,0 +1,15 @@
+{
+  "id": "alex-date-ending-select",
+  "steps": [
+    {
+      "kind": "select",
+      "options": [
+        {
+          "text": "Want to go on another date sometime?",
+          "queue": "alex-date-another-date"
+        },
+        { "text": "Say goodbye", "queue": "alex-date-farewell" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "jordan-checkout-farewell",
+  "steps": [
+    { "kind": "lower" },
+    { "kind": "exit" },
+    { "kind": "call", "action": "checkout.complete" }
+  ]
+}

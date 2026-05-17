@@ -1,0 +1,4 @@
+{
+  "id": "jordan-checkout-ending",
+  "steps": [{ "kind": "queue", "script": "jordan-checkout-ending-select" }]
+}

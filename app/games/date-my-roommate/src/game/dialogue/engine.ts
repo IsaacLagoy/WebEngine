@@ -36,6 +36,7 @@ export interface DialogueSelect extends DialogueStepBase {
   options: {
     text: string;
     func: () => void;
+    disabled?: boolean;
   }[];
 }
 

@@ -48,7 +48,11 @@ function GameDialogueOverlay() {
   const { game, sceneState, selectOptions, overlayActive, pickOption } = useGame();
   if (!overlayActive) return null;
 
-  const choiceLabels = selectOptions?.map((o) => o.text) ?? null;
+  const dialogueChoices =
+    selectOptions?.map((o) => ({
+      label: o.text,
+      disabled: o.disabled,
+    })) ?? null;
 
   return (
     <div
@@ -65,7 +69,7 @@ function GameDialogueOverlay() {
         state={sceneState}
         onDialogueAdvance={() => game.advance()}
         background={DIALOGUE_SCENE_BG}
-        dialogueChoiceLabels={choiceLabels}
+        dialogueChoices={dialogueChoices}
         onDialoguePickChoice={pickOption}
       />
     </div>

@@ -10,7 +10,7 @@ interface SceneProps {
   /** Optional background image URL or CSS gradient string. */
   background?: string;
   /** Branching choices (dialogue engine {@link DialogueSelect}) */
-  dialogueChoiceLabels?: string[] | null;
+  dialogueChoices?: import("./DialogueBox").DialogueChoice[] | null;
   onDialoguePickChoice?: (index: number) => void;
 }
 
@@ -18,7 +18,7 @@ export function Scene({
   state,
   onDialogueAdvance,
   background,
-  dialogueChoiceLabels,
+  dialogueChoices,
   onDialoguePickChoice,
 }: SceneProps) {
   const { characters, dialogue, lastSpeakerId } = state;
@@ -66,7 +66,7 @@ export function Scene({
       <DialogueBox
         dialogue={dialogue}
         onAdvance={onDialogueAdvance}
-        choiceLabels={dialogueChoiceLabels}
+        dialogueChoices={dialogueChoices}
         onPickChoice={onDialoguePickChoice}
       />
     </div>

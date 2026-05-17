@@ -1,0 +1,10 @@
+{
+  "id": "jordan-order-greeting-guess",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Go ahead — last person got it wrong.\""
+    },
+    { "kind": "queue", "script": "jordan-order-tail" }
+  ]
+}

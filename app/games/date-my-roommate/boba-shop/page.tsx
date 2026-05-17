@@ -6,22 +6,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BOBA_CUSTOMER_ROSTER, registerBobaCustomers } from "../src/characters";
 import { createDailyCustomerRoster } from "../src/game/boba/createDailyCustomerRoster";
 import { useGame } from "../src/game-context";
-import { pathForCurrentScene, SCENE_BOBA_SHOP, SCENE_STORE } from "../src/game/scenePaths";
-import OrderTab from "../components/boba-shop/OrderTab";
-import DrinkTab from "../components/boba-shop/DrinkTab";
-import ToppingsTab from "../components/boba-shop/ToppingsTab";
-import MixTab from "../components/boba-shop/MixTab";
-import CheckoutTab from "../components/boba-shop/CheckoutTab";
-import { RecipeHeader } from "../components/boba-shop/RecipeHeader";
+import { isEventScriptId } from "../src/game/eventScripts";
+import {
+  pathForCurrentScene,
+  SCENE_BOBA_SHOP,
+  SCENE_STORE,
+} from "../src/game/scenePaths";
+import OrderTab from "./components/OrderTab";
+import DrinkTab from "./components/DrinkTab";
+import ToppingsTab from "./components/ToppingsTab";
+import MixTab from "./components/MixTab";
+import CheckoutTab from "./components/CheckoutTab";
+import { RecipeHeader } from "./components/RecipeHeader";
 
 export default function BobaShopPage() {
   const router = useRouter();
   const { game, boba } = useGame();
   const { reset, initCustomerRoster, isDayComplete } = boba;
 
-  const goToStore = useCallback(() => {
-    game.saveProgress();
+  const goAfterWork = useCallback(() => {
+    const scheduled = game.gameData.scheduledEvent?.eventId;
+    if (scheduled && isEventScriptId(scheduled)) {
+      game.clearScheduledEvent();
+      game.setCurrentScene(scheduled);
+      game.saveProgress();
+      router.push(pathForCurrentScene(scheduled));
+      return;
+    }
+
     game.setCurrentScene(SCENE_STORE);
+    game.saveProgress();
     router.push(pathForCurrentScene(SCENE_STORE));
   }, [game, router]);
 
@@ -106,7 +120,7 @@ export default function BobaShopPage() {
             </p>
             <button
               type="button"
-              onClick={goToStore}
+              onClick={goAfterWork}
               style={{
                 padding: "10px 24px",
                 fontSize: 14,

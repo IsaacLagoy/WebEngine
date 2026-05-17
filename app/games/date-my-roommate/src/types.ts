@@ -235,11 +235,17 @@ export class Cup {
 // Scene
 // ----------------------------------------------------------
 
+/** After-work event scheduled during boba checkout (e.g. `alex-date`). */
+export interface ScheduledEvent {
+  eventId: string;
+}
+
 export interface GameData {
   characters: Record<string, Character>;
   player: Player;
   inventory: PlayerInventory;
   currentScene: string;
+  scheduledEvent: ScheduledEvent | null;
 }
 
 export const DEFAULT_GAME_DATA: GameData = {
@@ -247,6 +253,7 @@ export const DEFAULT_GAME_DATA: GameData = {
   player: DEFAULT_PLAYER,
   inventory: DEFAULT_INVENTORY,
   currentScene: "apartment",
+  scheduledEvent: null,
 };
 
 export interface SceneState {

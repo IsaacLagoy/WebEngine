@@ -1,0 +1,17 @@
+{
+  "id": "alex-date",
+  "steps": [
+    { "kind": "enter", "side": "left" },
+    {
+      "kind": "text",
+      "text": "\"Hey! Glad you could make it.\""
+    },
+    {
+      "kind": "select",
+      "options": [
+        { "text": "Say something nice", "queue": "alex-date-nice" },
+        { "text": "Say something mean", "queue": "alex-date-mean" }
+      ]
+    }
+  ]
+}

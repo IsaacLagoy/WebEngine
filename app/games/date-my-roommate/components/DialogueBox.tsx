@@ -2,22 +2,25 @@
 
 import type { DialogueState } from "../src/types";
 
+export type DialogueChoice = {
+  label: string;
+  disabled?: boolean;
+};
+
 interface DialogueBoxProps {
   dialogue: DialogueState;
-  /** Called when the user clicks the box to advance. */
   onAdvance?: () => void;
-  /** When set, clicking the box does not advance — use choice buttons instead. */
-  choiceLabels?: string[] | null;
+  dialogueChoices?: DialogueChoice[] | null;
   onPickChoice?: (index: number) => void;
 }
 
 export function DialogueBox({
   dialogue,
   onAdvance,
-  choiceLabels,
+  dialogueChoices,
   onPickChoice,
 }: DialogueBoxProps) {
-  const hasChoices = Boolean(choiceLabels && choiceLabels.length > 0);
+  const hasChoices = Boolean(dialogueChoices && dialogueChoices.length > 0);
 
   return (
     <div
@@ -35,10 +38,7 @@ export function DialogueBox({
       }
     >
       {dialogue.speakerName && !hasChoices && (
-        <p
-          className="dialogue-speaker"
-          style={{ color: dialogue.speakerColor }}
-        >
+        <p className="dialogue-speaker" style={{ color: dialogue.speakerColor }}>
           {dialogue.speakerName}
         </p>
       )}
@@ -51,22 +51,31 @@ export function DialogueBox({
         </p>
       )}
 
-      {hasChoices && choiceLabels && onPickChoice && (
+      {hasChoices && dialogueChoices && onPickChoice && (
         <div className="dialogue-choices" onClick={(e) => e.stopPropagation()}>
-          {choiceLabels.map((label, i) => (
-            <button
-              key={`${label}-${i}`}
-              type="button"
-              className="dialogue-choice-btn"
-              onClick={() => onPickChoice(i)}
-            >
-              {label}
-            </button>
-          ))}
+          {dialogueChoices.map((choice, i) =>
+            choice.disabled ? (
+              <div
+                key={`${choice.label}-${i}`}
+                className="dialogue-choice-btn dialogue-choice-btn--disabled"
+                aria-disabled="true"
+              >
+                {choice.label}
+              </div>
+            ) : (
+              <button
+                key={`${choice.label}-${i}`}
+                type="button"
+                className="dialogue-choice-btn"
+                onClick={() => onPickChoice(i)}
+              >
+                {choice.label}
+              </button>
+            )
+          )}
         </div>
       )}
 
-      {/* Advance indicator */}
       {!hasChoices && (
         <span className="dialogue-advance" aria-hidden="true">
           ▼

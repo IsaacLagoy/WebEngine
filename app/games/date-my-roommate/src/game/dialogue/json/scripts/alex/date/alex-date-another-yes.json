@@ -1,0 +1,10 @@
+{
+  "id": "alex-date-another-yes",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"I'd love to! Text me sometime.\""
+    },
+    { "kind": "queue", "script": "alex-date-farewell" }
+  ]
+}

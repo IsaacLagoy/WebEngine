@@ -1,0 +1,15 @@
+{
+  "id": "jordan-checkout-date-accept",
+  "steps": [
+    {
+      "kind": "call",
+      "action": "event.schedule",
+      "args": { "character": "Jordan", "eventId": "jordan-date" }
+    },
+    {
+      "kind": "text",
+      "text": "\"I'd love to! See you after work?\""
+    },
+    { "kind": "queue", "script": "jordan-checkout-farewell" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "alex-date-farewell",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"See you around!\""
+    },
+    { "kind": "lower" },
+    { "kind": "exit" },
+    { "kind": "call", "action": "event.complete" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "alex-order-greeting-welcome",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Appreciate it. I'll try not to make this complicated.\""
+    },
+    { "kind": "queue", "script": "alex-order-tail" }
+  ]
+}

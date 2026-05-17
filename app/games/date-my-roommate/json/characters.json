@@ -1,0 +1,20 @@
+[
+  {
+    "id": "boba_customer_alex",
+    "name": "Alex",
+    "scriptKey": "alex",
+    "imageSrc": "/images/isaac/isaac_research.png",
+    "disposition": 50,
+    "nameColor": "#90c8ff",
+    "appearanceChance": 0.75
+  },
+  {
+    "id": "boba_customer_jordan",
+    "name": "Jordan",
+    "scriptKey": "jordan",
+    "imageSrc": "/images/isaac/isaac_research.png",
+    "disposition": 55,
+    "nameColor": "#c4a8ff",
+    "appearanceChance": 0.75
+  }
+]

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame } from "./src/game-context";
+import { isEventScriptId } from "./src/game/eventScripts";
 import { pathForCurrentScene } from "./src/game/scenePaths";
 import { loadDateMyRoommateGameDataJson } from "./src/storage/dateMyRoommateLocalStorage";
 
@@ -19,6 +20,15 @@ export default function DateMyRoommatePage() {
 
   const resumeGame = useCallback(() => {
     if (!isLoaded) return;
+    const eventScriptId = game.resolveEventScriptIdForResume();
+    if (eventScriptId && isEventScriptId(eventScriptId)) {
+      if (game.gameData.currentScene !== eventScriptId) {
+        game.setCurrentScene(eventScriptId);
+        game.saveProgress();
+      }
+      router.push(pathForCurrentScene(eventScriptId));
+      return;
+    }
     router.push(pathForCurrentScene(game.gameData.currentScene));
   }, [game, isLoaded, router]);
 

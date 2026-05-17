@@ -2,7 +2,11 @@ import type { SceneState, Side } from "../../types";
 import { DialogueEngine, type DialogueStep } from "./engine";
 import type { SceneApi } from "../../useScene";
 
-export type SelectOption = { text: string; func: () => void };
+export type SelectOption = {
+  text: string;
+  func: () => void;
+  disabled?: boolean;
+};
 
 export type DialoguePlaybackBridge = {
   scene: SceneApi;
@@ -113,8 +117,9 @@ export function createDialoguePlayback(engine: DialogueEngine, bridge: DialogueP
   };
 
   const pickOption = (index: number, currentOptions: SelectOption[] | null) => {
-    if (!currentOptions?.[index]) return;
-    currentOptions[index].func();
+    const option = currentOptions?.[index];
+    if (!option || option.disabled) return;
+    option.func();
     bridge.selectBlockRef.current = false;
     bridge.setSelectOptions(null);
     bridge.syncQueueLength();

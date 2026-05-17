@@ -1,0 +1,15 @@
+{
+  "id": "alex-date-another-date",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        {
+          "when": { "flag": "wasNice", "equals": true },
+          "queue": "alex-date-another-yes"
+        }
+      ],
+      "default": "alex-date-another-no"
+    }
+  ]
+}

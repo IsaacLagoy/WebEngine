@@ -1,0 +1,15 @@
+{
+  "id": "alex-date-nice",
+  "steps": [
+    {
+      "kind": "call",
+      "action": "flag.set",
+      "args": { "key": "wasNice", "value": true }
+    },
+    {
+      "kind": "text",
+      "text": "\"That means a lot. You're really sweet.\""
+    },
+    { "kind": "queue", "script": "alex-date-ending-select" }
+  ]
+}

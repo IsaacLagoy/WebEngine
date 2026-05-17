@@ -1,0 +1,15 @@
+{
+  "id": "alex-checkout-date-accept",
+  "steps": [
+    {
+      "kind": "call",
+      "action": "event.schedule",
+      "args": { "character": "Alex", "eventId": "alex-date" }
+    },
+    {
+      "kind": "text",
+      "text": "\"I'd love to! See you after work?\""
+    },
+    { "kind": "queue", "script": "alex-checkout-farewell" }
+  ]
+}

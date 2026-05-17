@@ -1,4 +1,15 @@
-import type { GameData, Player, PlayerInventory, Clothing } from "../types";
+import {
+  getCharacterDefinitions,
+  mergePersistedCharacter,
+} from "../characters/characterCatalog";
+import type {
+  GameData,
+  Player,
+  PlayerInventory,
+  Clothing,
+  ScheduledEvent,
+  Character,
+} from "../types";
 import { DEFAULT_GAME_DATA, DEFAULT_PLAYER } from "../types";
 import { getStarterInventory } from "../items/catalog";
 
@@ -16,6 +27,27 @@ function parseOwnedGifts(raw: unknown): Record<string, number> {
     if (typeof v === "number" && Number.isFinite(v) && Number.isInteger(v) && v > 0) {
       out[k] = v;
     }
+  }
+  return out;
+}
+
+function parseScheduledEvent(raw: unknown): ScheduledEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.eventId === "string" && o.eventId.length > 0) {
+    return { eventId: o.eventId };
+  }
+  return null;
+}
+
+function parseCharacters(raw: unknown): Record<string, Character> {
+  const saved =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const out: Record<string, Character> = {};
+  for (const def of getCharacterDefinitions()) {
+    out[def.id] = mergePersistedCharacter(def, saved[def.id]);
   }
   return out;
 }
@@ -45,14 +77,15 @@ export function safeParseGameData(raw: string | null): GameData | null {
       typeof parsed.currentScene === "string" && parsed.currentScene.length > 0
         ? parsed.currentScene
         : DEFAULT_GAME_DATA.currentScene;
-    const characters =
-      parsed.characters && typeof parsed.characters === "object" ? parsed.characters : {};
+    const characters = parseCharacters(parsed.characters);
     const inventory = parseInventory(parsed.inventory) ?? getStarterInventory();
+    const scheduledEvent = parseScheduledEvent(parsed.scheduledEvent);
     return {
       player: { money, clothing },
       currentScene,
       characters,
       inventory,
+      scheduledEvent,
     };
   } catch {
     return null;
