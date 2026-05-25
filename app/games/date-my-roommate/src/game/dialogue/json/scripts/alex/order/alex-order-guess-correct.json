@@ -1,0 +1,10 @@
+{
+  "id": "alex-order-guess-correct",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Wait, you actually got it? That's kind of impressive.\""
+    },
+    { "kind": "queue", "script": "alex-order-tail-guess-correct" }
+  ]
+}

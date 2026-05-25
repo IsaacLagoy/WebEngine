@@ -1,0 +1,10 @@
+{
+  "id": "alex-checkout-gift-tolerated",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"A burger? Uh… sure, I'll take it. Thanks, I guess.\""
+    },
+    { "kind": "queue", "script": "alex-checkout-ending-select" }
+  ]
+}

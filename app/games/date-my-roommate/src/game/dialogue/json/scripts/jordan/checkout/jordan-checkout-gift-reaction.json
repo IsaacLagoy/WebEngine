@@ -1,0 +1,23 @@
+{
+  "id": "jordan-checkout-gift-reaction",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "loved" } },
+          "queue": "jordan-checkout-gift-loved"
+        },
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "hated" } },
+          "queue": "jordan-checkout-gift-hated"
+        },
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "tolerated" } },
+          "queue": "jordan-checkout-gift-tolerated"
+        }
+      ],
+      "default": "jordan-checkout-ending-select"
+    }
+  ]
+}

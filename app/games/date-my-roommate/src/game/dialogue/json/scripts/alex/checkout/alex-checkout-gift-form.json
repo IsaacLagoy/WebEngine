@@ -1,0 +1,15 @@
+{
+  "id": "alex-checkout-gift-form",
+  "steps": [
+    {
+      "kind": "form",
+      "form": "gift-select",
+      "title": "Give Alex a gift",
+      "allowNone": true,
+      "noneLabel": "Go back",
+      "onSubmitQueue": "alex-checkout-gift-reaction",
+      "onNoneQueue": "alex-checkout-ending-select",
+      "continueQueue": "alex-checkout-ending-select"
+    }
+  ]
+}

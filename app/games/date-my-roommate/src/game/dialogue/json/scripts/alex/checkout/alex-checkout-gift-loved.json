@@ -1,0 +1,10 @@
+{
+  "id": "alex-checkout-gift-loved",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Wait—you got me an iPhone 17? That's actually insane. Thank you.\""
+    },
+    { "kind": "queue", "script": "alex-checkout-ending-select" }
+  ]
+}

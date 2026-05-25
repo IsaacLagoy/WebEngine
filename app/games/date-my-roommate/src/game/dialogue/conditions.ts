@@ -3,6 +3,8 @@ import type { DateMyRoommateGame } from "../DateMyRoommateGame";
 import type { DialogueContext } from "./context";
 import type { DialogueCondition, NumericCompare } from "./json/types";
 import type { Character } from "../../types";
+import { getGiftItemIds } from "../../items/catalog";
+import { getGiftReaction } from "../gifts/preferences";
 
 export type NamedConditionFn = (
   ctx: DialogueContext,
@@ -46,6 +48,11 @@ export function evalCondition(
     const qty = ownedGifts[condition.inventoryHas];
     return typeof qty === "number" && qty > 0;
   }
+  if ("inventoryHasAnyGift" in condition) {
+    const { ownedGifts } = game.gameData.inventory;
+    const hasAny = getGiftItemIds().some((id) => (ownedGifts[id] ?? 0) > 0);
+    return hasAny === condition.inventoryHasAnyGift;
+  }
   if ("hasScheduledEvent" in condition) {
     return game.hasScheduledEvent() === condition.hasScheduledEvent;
   }
@@ -76,6 +83,24 @@ export function evalCondition(
       return false;
     }
     return fn(ctx, game);
+  }
+  if ("session" in condition) {
+    const actual = game.getDialogueSession(condition.session.key);
+    return actual === condition.session.equals;
+  }
+  if ("giftGiven" in condition) {
+    const ch = resolveConditionCharacter(condition.giftGiven.character, ctx, game);
+    if (!ch) return false;
+    const count = game.countGiftsGiven(ch.id, condition.giftGiven.itemId);
+    const { itemId: _itemId, character: _character, ...compare } = condition.giftGiven;
+    if (Object.keys(compare).length === 0) return count >= 1;
+    return compareNumeric(count, compare);
+  }
+  if ("giftPreference" in condition) {
+    const ch = resolveConditionCharacter(condition.giftPreference.character, ctx, game);
+    if (!ch) return false;
+    const reaction = getGiftReaction(ch.id, condition.giftPreference.itemId);
+    return reaction === condition.giftPreference.eq;
   }
   return false;
 }

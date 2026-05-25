@@ -9,6 +9,10 @@ export type CharacterDefinition = {
   disposition: number;
   nameColor?: string;
   appearanceChance: number;
+  /** Gift names from items.json (type gift). */
+  lovedGifts?: string[];
+  /** Gift names from items.json (type gift). All other gifts are tolerated. */
+  hatedGifts?: string[];
 };
 
 const DEFINITIONS = charactersJson as CharacterDefinition[];

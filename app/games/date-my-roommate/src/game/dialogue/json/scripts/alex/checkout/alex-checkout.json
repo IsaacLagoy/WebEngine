@@ -2,13 +2,6 @@
   "id": "alex-checkout",
   "steps": [
     { "kind": "enter", "side": "left" },
-    {
-      "kind": "branch",
-      "cases": [
-        { "when": { "score": { "eq": 0 } }, "queue": "alex-checkout-reaction-fail" },
-        { "when": { "score": { "lt": 0.5 } }, "queue": "alex-checkout-reaction-mid" }
-      ],
-      "default": "alex-checkout-reaction-good"
-    }
+    { "kind": "queue", "script": "alex-checkout-score" }
   ]
 }

@@ -4,6 +4,7 @@ import {
 } from "../characters/characterCatalog";
 import type {
   GameData,
+  GiftsGivenByCharacter,
   Player,
   PlayerInventory,
   Clothing,
@@ -52,6 +53,31 @@ function parseCharacters(raw: unknown): Record<string, Character> {
   return out;
 }
 
+function parseGiftsGiven(raw: unknown): GiftsGivenByCharacter {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: GiftsGivenByCharacter = {};
+  for (const [characterId, giftsRaw] of Object.entries(raw)) {
+    if (giftsRaw == null || typeof giftsRaw !== "object" || Array.isArray(giftsRaw)) {
+      continue;
+    }
+    const gifts: Record<string, number> = {};
+    for (const [giftId, count] of Object.entries(giftsRaw)) {
+      if (
+        typeof count === "number" &&
+        Number.isFinite(count) &&
+        Number.isInteger(count) &&
+        count > 0
+      ) {
+        gifts[giftId] = count;
+      }
+    }
+    if (Object.keys(gifts).length > 0) {
+      out[characterId] = gifts;
+    }
+  }
+  return out;
+}
+
 function parseInventory(raw: unknown): PlayerInventory | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -79,12 +105,14 @@ export function safeParseGameData(raw: string | null): GameData | null {
         : DEFAULT_GAME_DATA.currentScene;
     const characters = parseCharacters(parsed.characters);
     const inventory = parseInventory(parsed.inventory) ?? getStarterInventory();
+    const giftsGiven = parseGiftsGiven(parsed.giftsGiven);
     const scheduledEvent = parseScheduledEvent(parsed.scheduledEvent);
     return {
       player: { money, clothing },
       currentScene,
       characters,
       inventory,
+      giftsGiven,
       scheduledEvent,
     };
   } catch {

@@ -1,0 +1,10 @@
+{
+  "id": "jordan-order-guess-correct",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Okay, you got it. I'm actually impressed.\""
+    },
+    { "kind": "queue", "script": "jordan-order-tail-guess-correct" }
+  ]
+}

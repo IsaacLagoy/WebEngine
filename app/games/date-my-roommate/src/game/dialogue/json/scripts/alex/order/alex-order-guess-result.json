@@ -1,0 +1,15 @@
+{
+  "id": "alex-order-guess-result",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        {
+          "when": { "session": { "key": "orderGuessCorrect", "equals": "true" } },
+          "queue": "alex-order-guess-correct"
+        }
+      ],
+      "default": "alex-order-guess-wrong"
+    }
+  ]
+}

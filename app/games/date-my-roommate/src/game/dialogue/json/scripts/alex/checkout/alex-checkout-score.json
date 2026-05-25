@@ -1,0 +1,13 @@
+{
+  "id": "alex-checkout-score",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        { "when": { "score": { "eq": 0 } }, "queue": "alex-checkout-reaction-fail" },
+        { "when": { "score": { "lt": 0.5 } }, "queue": "alex-checkout-reaction-mid" }
+      ],
+      "default": "alex-checkout-reaction-good"
+    }
+  ]
+}

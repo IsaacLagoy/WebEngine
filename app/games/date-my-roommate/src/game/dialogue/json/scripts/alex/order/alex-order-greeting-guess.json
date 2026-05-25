@@ -5,6 +5,12 @@
       "kind": "text",
       "text": "\"Go ahead — last person got it wrong.\""
     },
-    { "kind": "queue", "script": "alex-order-tail" }
+    {
+      "kind": "form",
+      "form": "order-guess",
+      "title": "Guess Alex's order",
+      "submitLabel": "Submit guess",
+      "onSubmitQueue": "alex-order-guess-result"
+    }
   ]
 }

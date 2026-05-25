@@ -1,0 +1,10 @@
+{
+  "id": "jordan-checkout-gift-tolerated",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"An iPhone? Cool… I mean, thanks. I'll figure out what to do with it.\""
+    },
+    { "kind": "queue", "script": "jordan-checkout-ending-select" }
+  ]
+}

@@ -5,6 +5,12 @@
       "kind": "select",
       "options": [
         {
+          "text": "Give gift",
+          "queue": "jordan-checkout-gift-form",
+          "unavailableWhen": { "not": { "inventoryHasAnyGift": true } },
+          "unavailableText": "No gifts in your inventory"
+        },
+        {
           "text": "Ask them on a date",
           "queue": "jordan-checkout-date-accept",
           "unavailableWhen": { "hasScheduledEvent": true },

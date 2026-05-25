@@ -33,6 +33,20 @@ type CatalogRow = {
 export type ShopListingRow = CatalogRow;
 
 /** All rows from items.json with stable ids (clothing + gifts). */
+/** Gift rows from items.json (unique names → stable ids). */
+export function getGiftCatalog(): CatalogRow[] {
+  return getShopCatalog().filter((r) => r.type === "gift");
+}
+
+export function getGiftItemIds(): string[] {
+  return getGiftCatalog().map((r) => r.id);
+}
+
+export function getGiftIdByName(name: string): string | undefined {
+  const hit = getGiftCatalog().find((r) => r.name === name);
+  return hit?.id;
+}
+
 export function getShopCatalog(): CatalogRow[] {
   type JsonItem = {
     name: string;

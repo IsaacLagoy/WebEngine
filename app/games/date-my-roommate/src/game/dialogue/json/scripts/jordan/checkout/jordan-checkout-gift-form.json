@@ -1,0 +1,15 @@
+{
+  "id": "jordan-checkout-gift-form",
+  "steps": [
+    {
+      "kind": "form",
+      "form": "gift-select",
+      "title": "Give Jordan a gift",
+      "allowNone": true,
+      "noneLabel": "Go back",
+      "onSubmitQueue": "jordan-checkout-gift-reaction",
+      "onNoneQueue": "jordan-checkout-ending-select",
+      "continueQueue": "jordan-checkout-ending-select"
+    }
+  ]
+}

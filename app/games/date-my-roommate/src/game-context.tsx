@@ -17,8 +17,10 @@ import { DateMyRoommateGame } from "./game/DateMyRoommateGame";
 import { useBobaSession, type BobaSession } from "./game/boba/session";
 import {
   createDialoguePlayback,
+  type DialogueForm,
   type SelectOption,
 } from "./game/dialogue/playback";
+import { DialogueFormModal } from "../components/DialogueFormModal";
 import { safeParseGameData } from "./game/gameDataStorage";
 import {
   clearDateMyRoommatePersistedStorage,
@@ -38,14 +40,24 @@ export type GameContextValue = {
   isLoaded: boolean;
   sceneState: ReturnType<typeof useScene>["state"];
   selectOptions: SelectOption[] | null;
+  dialogueForm: DialogueForm | null;
   overlayActive: boolean;
   pickOption: (index: number) => void;
+  submitDialogueForm: (values: Record<string, string>) => void;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
 
 function GameDialogueOverlay() {
-  const { game, sceneState, selectOptions, overlayActive, pickOption } = useGame();
+  const {
+    game,
+    sceneState,
+    selectOptions,
+    dialogueForm,
+    overlayActive,
+    pickOption,
+    submitDialogueForm,
+  } = useGame();
   if (!overlayActive) return null;
 
   const dialogueChoices =
@@ -72,6 +84,9 @@ function GameDialogueOverlay() {
         dialogueChoices={dialogueChoices}
         onDialoguePickChoice={pickOption}
       />
+      {dialogueForm && (
+        <DialogueFormModal form={dialogueForm} onSubmit={submitDialogueForm} />
+      )}
     </div>
   );
 }
@@ -83,8 +98,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [gameData, setGameData] = useState(createInitialGameData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectOptions, setSelectOptions] = useState<SelectOption[] | null>(null);
+  const [dialogueForm, setDialogueForm] = useState<DialogueForm | null>(null);
   const [queueLength, setQueueLength] = useState(0);
   const selectBlockRef = useRef(false);
+  const formBlockRef = useRef(false);
 
   const gameRef = useRef<DateMyRoommateGame | null>(null);
   if (!gameRef.current) {
@@ -118,7 +135,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       scene,
       getSceneState: () => scene.state,
       selectBlockRef,
+      formBlockRef,
       setSelectOptions,
+      setFormState: setDialogueForm,
       syncQueueLength,
     });
     game.attachPlayback(playbackRef.current);
@@ -144,10 +163,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [playback, selectOptions]
   );
 
+  const submitDialogueForm = useCallback(
+    (values: Record<string, string>) => {
+      playback.submitForm(values, dialogueForm);
+    },
+    [playback, dialogueForm]
+  );
+
   const overlayActive =
     queueLength > 0 ||
     scene.state.dialogue.visible ||
-    (selectOptions != null && selectOptions.length > 0);
+    (selectOptions != null && selectOptions.length > 0) ||
+    dialogueForm != null;
 
   const value = useMemo<GameContextValue>(
     () => ({
@@ -157,10 +184,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isLoaded,
       sceneState: scene.state,
       selectOptions,
+      dialogueForm,
       overlayActive,
       pickOption,
+      submitDialogueForm,
     }),
-    [game, gameData, boba, isLoaded, scene.state, selectOptions, overlayActive, pickOption]
+    [
+      game,
+      gameData,
+      boba,
+      isLoaded,
+      scene.state,
+      selectOptions,
+      dialogueForm,
+      overlayActive,
+      pickOption,
+      submitDialogueForm,
+    ]
   );
 
   return (

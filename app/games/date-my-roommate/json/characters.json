@@ -6,7 +6,9 @@
     "imageSrc": "/images/isaac/isaac_research.png",
     "disposition": 50,
     "nameColor": "#90c8ff",
-    "appearanceChance": 0.75
+    "appearanceChance": 0.75,
+    "lovedGifts": ["iPhone17"],
+    "hatedGifts": []
   },
   {
     "id": "boba_customer_jordan",
@@ -15,6 +17,8 @@
     "imageSrc": "/images/isaac/isaac_research.png",
     "disposition": 55,
     "nameColor": "#c4a8ff",
-    "appearanceChance": 0.75
+    "appearanceChance": 0.75,
+    "lovedGifts": ["Hamburger"],
+    "hatedGifts": []
   }
 ]

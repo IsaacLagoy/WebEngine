@@ -1,0 +1,10 @@
+{
+  "id": "alex-order-guess-wrong",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Nope. Not even close.\""
+    },
+    { "kind": "queue", "script": "alex-order-tail-guess-wrong" }
+  ]
+}

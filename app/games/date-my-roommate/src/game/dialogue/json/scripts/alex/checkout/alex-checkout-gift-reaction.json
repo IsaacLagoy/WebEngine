@@ -1,0 +1,23 @@
+{
+  "id": "alex-checkout-gift-reaction",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "loved" } },
+          "queue": "alex-checkout-gift-loved"
+        },
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "hated" } },
+          "queue": "alex-checkout-gift-hated"
+        },
+        {
+          "when": { "session": { "key": "lastGiftReaction", "equals": "tolerated" } },
+          "queue": "alex-checkout-gift-tolerated"
+        }
+      ],
+      "default": "alex-checkout-ending-select"
+    }
+  ]
+}

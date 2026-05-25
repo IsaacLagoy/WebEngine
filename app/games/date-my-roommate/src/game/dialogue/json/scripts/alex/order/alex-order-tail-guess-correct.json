@@ -1,0 +1,12 @@
+{
+  "id": "alex-order-tail-guess-correct",
+  "steps": [
+    { "kind": "call", "action": "order.add" },
+    {
+      "kind": "text",
+      "text": "\"Cool. I'll wait over there while you make it.\""
+    },
+    { "kind": "lower" },
+    { "kind": "exit" }
+  ]
+}

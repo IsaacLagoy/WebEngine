@@ -1,0 +1,13 @@
+{
+  "id": "jordan-checkout-score",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        { "when": { "score": { "eq": 0 } }, "queue": "jordan-checkout-reaction-fail" },
+        { "when": { "score": { "lt": 0.5 } }, "queue": "jordan-checkout-reaction-mid" }
+      ],
+      "default": "jordan-checkout-reaction-good"
+    }
+  ]
+}

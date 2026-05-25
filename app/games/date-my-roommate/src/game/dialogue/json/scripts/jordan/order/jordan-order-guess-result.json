@@ -1,0 +1,15 @@
+{
+  "id": "jordan-order-guess-result",
+  "steps": [
+    {
+      "kind": "branch",
+      "cases": [
+        {
+          "when": { "session": { "key": "orderGuessCorrect", "equals": "true" } },
+          "queue": "jordan-order-guess-correct"
+        }
+      ],
+      "default": "jordan-order-guess-wrong"
+    }
+  ]
+}

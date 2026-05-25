@@ -1,5 +1,6 @@
 import type { DateMyRoommateGame } from "../DateMyRoommateGame";
 import { resolveDialogueActionSteps, runDialogueAction } from "./actions";
+import { buildDialogueFormStep } from "./buildDialogueForm";
 import { buildSelectOptions } from "./buildSelectOptions";
 import { evalCondition, pickBranchQueue } from "./conditions";
 import type { DialogueContext } from "./context";
@@ -92,6 +93,36 @@ export class DialogueResolver {
             side: null,
             options,
           });
+          break;
+        }
+        case "form": {
+          const formStep = buildDialogueFormStep(
+            step,
+            ctx,
+            this.game,
+            (scriptId) => this.game.queueDialogue(scriptId, ctx)
+          );
+          if (!formStep) {
+            if (step.continueQueue) {
+              out.push(
+                funcStep(() => {
+                  this.game.queueDialogue(step.continueQueue!, ctx);
+                })
+              );
+            }
+            break;
+          }
+          if (formStep.fields.length === 0 && step.form === "gift-select") {
+            if (step.continueQueue) {
+              out.push(
+                funcStep(() => {
+                  this.game.queueDialogue(step.continueQueue!, ctx);
+                })
+              );
+            }
+            break;
+          }
+          out.push(formStep);
           break;
         }
         default:

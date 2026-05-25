@@ -1,0 +1,10 @@
+{
+  "id": "jordan-order-guess-wrong",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Yeah, no. That's not what I ordered at all.\""
+    },
+    { "kind": "queue", "script": "jordan-order-tail-guess-wrong" }
+  ]
+}

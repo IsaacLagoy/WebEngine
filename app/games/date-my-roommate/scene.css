@@ -257,3 +257,97 @@
     font-size: 0.9rem;
   }
 }
+
+/* ─────────────────────────────────────────
+   Dialogue form modal (unclosable)
+   ───────────────────────────────────────── */
+.dmr-dialogue-form-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.dmr-dialogue-form {
+  width: min(92vw, 360px);
+  padding: 20px 22px 22px;
+  border-radius: 12px;
+  background: #2a2838;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: #f2f0ff;
+}
+
+.dmr-dialogue-form__title {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.dmr-dialogue-form__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dmr-dialogue-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dmr-dialogue-form__label {
+  font-size: 0.8rem;
+  color: #b8b4cc;
+}
+
+.dmr-dialogue-form__select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1a1828;
+  color: #f2f0ff;
+  font-size: 0.95rem;
+}
+
+.dmr-dialogue-form__submit {
+  margin-top: 4px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #7c6cf0;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dmr-dialogue-form__submit:hover {
+  background: #8f80f5;
+}
+
+.dmr-dialogue-form__checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dmr-dialogue-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.dmr-dialogue-form__checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #7c6cf0;
+}

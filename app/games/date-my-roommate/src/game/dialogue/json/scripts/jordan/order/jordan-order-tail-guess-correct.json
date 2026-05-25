@@ -1,0 +1,12 @@
+{
+  "id": "jordan-order-tail-guess-correct",
+  "steps": [
+    { "kind": "call", "action": "order.add" },
+    {
+      "kind": "text",
+      "text": "\"Alright, I'll be over there. Don't mess it up.\""
+    },
+    { "kind": "lower" },
+    { "kind": "exit" }
+  ]
+}

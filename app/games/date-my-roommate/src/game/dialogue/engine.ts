@@ -40,13 +40,37 @@ export interface DialogueSelect extends DialogueStepBase {
   }[];
 }
 
+export type DialogueFormField =
+  | {
+      type: "select";
+      name: string;
+      label: string;
+      options: { value: string; label: string }[];
+      required?: boolean;
+    }
+  | {
+      type: "checkboxes";
+      name: string;
+      label: string;
+      options: { value: string; label: string }[];
+    };
+
+export interface DialogueForm extends DialogueStepBase {
+  kind: "form";
+  title: string;
+  fields: DialogueFormField[];
+  submitLabel?: string;
+  onSubmit: (values: Record<string, string>) => void;
+}
+
 export type DialogueStep =
   | DialogueEnter
   | DialogueExit
   | DialogueLowerText
   | DialogueText
   | DialogueFunc
-  | DialogueSelect;
+  | DialogueSelect
+  | DialogueForm;
 
 export class DialogueEngine {
   private queue: DialogueStep[] = [];

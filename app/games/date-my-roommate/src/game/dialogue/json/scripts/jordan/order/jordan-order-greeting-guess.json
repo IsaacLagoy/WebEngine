@@ -3,8 +3,14 @@
   "steps": [
     {
       "kind": "text",
-      "text": "\"Go ahead — last person got it wrong.\""
+      "text": "\"Bet you can't get it right. Prove me wrong.\""
     },
-    { "kind": "queue", "script": "jordan-order-tail" }
+    {
+      "kind": "form",
+      "form": "order-guess",
+      "title": "Guess Jordan's order",
+      "submitLabel": "Submit guess",
+      "onSubmitQueue": "jordan-order-guess-result"
+    }
   ]
 }

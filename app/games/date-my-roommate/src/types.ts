@@ -240,10 +240,15 @@ export interface ScheduledEvent {
   eventId: string;
 }
 
+/** Persisted gift history: character id → gift item id → times given. */
+export type GiftsGivenByCharacter = Record<string, Record<string, number>>;
+
 export interface GameData {
   characters: Record<string, Character>;
   player: Player;
   inventory: PlayerInventory;
+  /** Gifts the player has given each character (persisted in localStorage). */
+  giftsGiven: GiftsGivenByCharacter;
   currentScene: string;
   scheduledEvent: ScheduledEvent | null;
 }
@@ -252,6 +257,7 @@ export const DEFAULT_GAME_DATA: GameData = {
   characters: {},
   player: DEFAULT_PLAYER,
   inventory: DEFAULT_INVENTORY,
+  giftsGiven: {},
   currentScene: "apartment",
   scheduledEvent: null,
 };

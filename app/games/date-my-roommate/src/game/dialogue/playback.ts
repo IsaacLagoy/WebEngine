@@ -1,5 +1,5 @@
 import type { SceneState, Side } from "../../types";
-import { DialogueEngine, type DialogueStep } from "./engine";
+import { DialogueEngine, type DialogueForm, type DialogueStep } from "./engine";
 import type { SceneApi } from "../../useScene";
 
 export type SelectOption = {
@@ -8,11 +8,15 @@ export type SelectOption = {
   disabled?: boolean;
 };
 
+export type { DialogueForm };
+
 export type DialoguePlaybackBridge = {
   scene: SceneApi;
   getSceneState: () => SceneState;
   selectBlockRef: { current: boolean };
+  formBlockRef: { current: boolean };
   setSelectOptions: (options: SelectOption[] | null) => void;
+  setFormState: (form: DialogueForm | null) => void;
   syncQueueLength: () => void;
 };
 
@@ -57,16 +61,21 @@ export function createDialoguePlayback(engine: DialogueEngine, bridge: DialogueP
         bridge.selectBlockRef.current = true;
         bridge.setSelectOptions(step.options);
         break;
+      case "form":
+        bridge.scene.clearDialogueContent();
+        bridge.formBlockRef.current = true;
+        bridge.setFormState(step);
+        break;
       default:
         break;
     }
   };
 
   const drainUntilBlocking = () => {
-    if (bridge.selectBlockRef.current) return;
+    if (bridge.selectBlockRef.current || bridge.formBlockRef.current) return;
 
     const process = () => {
-      if (bridge.selectBlockRef.current) return;
+      if (bridge.selectBlockRef.current || bridge.formBlockRef.current) return;
 
       flushLeadingFuncs(engine);
       bridge.syncQueueLength();
@@ -77,7 +86,7 @@ export function createDialoguePlayback(engine: DialogueEngine, bridge: DialogueP
         return;
       }
 
-      if (peek.kind === "text" || peek.kind === "select") {
+      if (peek.kind === "text" || peek.kind === "select" || peek.kind === "form") {
         engine.dequeue();
         applyStep(peek);
         bridge.syncQueueLength();
@@ -108,7 +117,9 @@ export function createDialoguePlayback(engine: DialogueEngine, bridge: DialogueP
   const clearScript = () => {
     engine.clear();
     bridge.selectBlockRef.current = false;
+    bridge.formBlockRef.current = false;
     bridge.setSelectOptions(null);
+    bridge.setFormState(null);
     bridge.syncQueueLength();
   };
 
@@ -126,11 +137,21 @@ export function createDialoguePlayback(engine: DialogueEngine, bridge: DialogueP
     queueMicrotask(drainUntilBlocking);
   };
 
+  const submitForm = (values: Record<string, string>, currentForm: DialogueForm | null) => {
+    if (!currentForm) return;
+    currentForm.onSubmit(values);
+    bridge.formBlockRef.current = false;
+    bridge.setFormState(null);
+    bridge.syncQueueLength();
+    queueMicrotask(drainUntilBlocking);
+  };
+
   return {
     queueScript,
     clearScript,
     resetScene,
     advance: drainUntilBlocking,
     pickOption,
+    submitForm,
   };
 }

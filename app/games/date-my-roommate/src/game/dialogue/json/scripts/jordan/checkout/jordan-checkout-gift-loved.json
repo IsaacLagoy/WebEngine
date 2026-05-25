@@ -1,0 +1,10 @@
+{
+  "id": "jordan-checkout-gift-loved",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"You brought me a burger? You're the best. I'm starving.\""
+    },
+    { "kind": "queue", "script": "jordan-checkout-ending-select" }
+  ]
+}

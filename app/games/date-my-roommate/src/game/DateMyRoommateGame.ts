@@ -29,6 +29,7 @@ import {
   checkoutScriptId,
   orderScriptId,
 } from "./dialogue/characterScripts";
+import { getGiftReaction } from "./gifts/preferences";
 import {
   characterNameForEventScript,
   isEventScriptId,
@@ -53,6 +54,8 @@ export class DateMyRoommateGame {
   private dialogueResolver: DialogueResolver | null = null;
   /** Ephemeral flags for in-scene dialogue branches (not persisted). */
   private dialogueFlags: Record<string, boolean> = {};
+  /** Ephemeral string values for in-scene dialogue (e.g. last gift reaction). */
+  private dialogueSession: Record<string, string> = {};
   private readonly onDataChange?: (data: GameData) => void;
 
   constructor(initialData: GameData = createInitialGameData(), onDataChange?: (data: GameData) => void) {
@@ -208,6 +211,25 @@ export class DateMyRoommateGame {
     return true;
   }
 
+  countGiftsGiven(characterId: string, giftId?: string): number {
+    const byGift = this.data.giftsGiven[characterId];
+    if (!byGift) return 0;
+    if (giftId) return byGift[giftId] ?? 0;
+    return Object.values(byGift).reduce((sum, n) => sum + n, 0);
+  }
+
+  recordGiftGiven(characterId: string, giftId: string): void {
+    const characterGifts = { ...(this.data.giftsGiven[characterId] ?? {}) };
+    characterGifts[giftId] = (characterGifts[giftId] ?? 0) + 1;
+    this.commit({
+      ...this.data,
+      giftsGiven: {
+        ...this.data.giftsGiven,
+        [characterId]: characterGifts,
+      },
+    });
+  }
+
   /** Player gives a gift item to a character (removes one from inventory). */
   tryGiveGift(nameOrId: string, itemId: string): boolean {
     const row = getShopCatalog().find((r) => r.id === itemId);
@@ -216,7 +238,11 @@ export class DateMyRoommateGame {
       return false;
     }
     if (!this.removeInventoryItem(itemId, 1)) return false;
-    this.requireCharacterByName(nameOrId);
+    const character = this.requireCharacterByName(nameOrId);
+    this.recordGiftGiven(character.id, itemId);
+    const reaction = getGiftReaction(character.id, itemId);
+    this.setDialogueSession("lastGiftId", itemId);
+    this.setDialogueSession("lastGiftReaction", reaction);
     return true;
   }
 
@@ -316,6 +342,18 @@ export class DateMyRoommateGame {
     this.dialogueFlags = {};
   }
 
+  getDialogueSession(key: string): string | undefined {
+    return this.dialogueSession[key];
+  }
+
+  setDialogueSession(key: string, value: string): void {
+    this.dialogueSession[key] = value;
+  }
+
+  clearDialogueSession(): void {
+    this.dialogueSession = {};
+  }
+
   /**
    * Start an after-work event: clears the schedule, sets currentScene to the script id,
    * resets session flags, and runs dialogue.
@@ -327,6 +365,7 @@ export class DateMyRoommateGame {
     this.clearScheduledEvent();
     this.setCurrentScene(eventScriptId);
     this.clearDialogueFlags();
+    this.clearDialogueSession();
 
     const characterName = characterNameForEventScript(eventScriptId);
     if (!characterName) {
@@ -386,6 +425,8 @@ export class DateMyRoommateGame {
     const playback = this.requirePlayback();
     playback.resetScene();
     playback.clearScript();
+    this.clearDialogueFlags();
+    this.clearDialogueSession();
     this.queueDialogue(scriptId, ctx);
     playback.advance();
   }

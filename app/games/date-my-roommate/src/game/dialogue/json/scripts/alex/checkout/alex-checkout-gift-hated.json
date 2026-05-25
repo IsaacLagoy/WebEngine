@@ -1,0 +1,10 @@
+{
+  "id": "alex-checkout-gift-hated",
+  "steps": [
+    {
+      "kind": "text",
+      "text": "\"Uh… thanks, I guess? Not really my thing.\""
+    },
+    { "kind": "queue", "script": "alex-checkout-ending-select" }
+  ]
+}
