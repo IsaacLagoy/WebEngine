@@ -11,6 +11,11 @@ const SECTIONS = [
     newTab: true,
   },
   {
+    href: "/dnd/stat-calculator",
+    label: "Stat Calculator",
+    description: "Calculate stats for your character",
+  },
+  {
     href: "/dnd/classes",
     label: "Classes",
     description: "Browse playable classes, stats, and alignments"
@@ -21,9 +26,14 @@ const SECTIONS = [
     description: "Browse items and their prices",
   },
   {
-    href: "/dnd/items",
-    label: "Items",
-    description: "Browse items and their properties",
+    href: "/dnd/weapons",
+    label: "Weapons",
+    description: "Build weapons and enchants",
+  },
+  {
+    href: "/dnd/armor",
+    label: "Armor",
+    description: "Build armor and enchants",
   },
   {
     href: "/dnd/potions",

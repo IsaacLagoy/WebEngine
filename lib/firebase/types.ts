@@ -142,6 +142,24 @@ export interface MaterialData {
 }
 export type Material = MaterialData & { id: string };
 
+export interface ArmorMaterialData {
+  name: string;
+  class: string;
+  damage_reduction: number;
+  magic_reduction: number;
+  rogue_reduction: number;
+  magic_resistance: number;
+  full_price: number;
+}
+export type ArmorMaterial = ArmorMaterialData & { id: string };
+
+export interface WeaponMaterialData {
+  name: string;
+  thac0: number;
+  price: number;
+}
+export type WeaponMaterial = WeaponMaterialData & { id: string };
+
 // ------------------------------------------------------------
 // Shop Item Types
 // ------------------------------------------------------------

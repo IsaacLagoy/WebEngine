@@ -7,6 +7,7 @@ type BaseModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  titleClassName?: string;
   children: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 };
@@ -23,6 +24,7 @@ export default function BaseModal({
   isOpen,
   onClose,
   title,
+  titleClassName = "text-white",
   children,
   maxWidth = "2xl",
 }: BaseModalProps) {
@@ -62,7 +64,7 @@ export default function BaseModal({
       <Glass className={`w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-y-auto`} ref={modalRef}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">{title}</h2>
+            <h2 className={`text-2xl font-bold ${titleClassName}`}>{title}</h2>
             <button
               onClick={onClose}
               className="text-white/70 hover:text-white text-2xl leading-none transition-colors"

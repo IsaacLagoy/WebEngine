@@ -13,6 +13,10 @@ const SEGMENT_LABELS: Record<string, string> = {
   skills: "Skills",
   spells: "Spells",
   classes: "Classes",
+  items: "Items",
+  armor: "Armor",
+  weapons: "Weapons",
+  "stat-calculator": "Stat Calculator",
 };
 
 function segmentToLabel(segment: string): string {
