@@ -19,13 +19,10 @@ export interface ParseResult {
  * Yields control to the browser to prevent blocking the main thread
  */
 function yieldToBrowser(): Promise<void> {
+    // Prefer setTimeout: requestIdleCallback with timeout:0 can hang indefinitely
+    // when the main thread stays busy (treated like "no timeout" in some browsers).
     return new Promise<void>((resolve) => {
-        if (typeof requestIdleCallback !== 'undefined') {
-            requestIdleCallback(() => resolve(), { timeout: 0 });
-        } else {
-            // Fallback for browsers without requestIdleCallback
-            setTimeout(() => resolve(), 0);
-        }
+        setTimeout(resolve, 0);
     });
 }
 

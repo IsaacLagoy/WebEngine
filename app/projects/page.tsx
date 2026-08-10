@@ -16,6 +16,13 @@ interface Project {
 
 const projects: Project[] = [
   {
+    id: "bad-apple-suzanne",
+    title: "Bad Apple But It's Suzanne",
+    description: "Recreation of the Bad Apple music video with raytraced Suzanne the Blender Monkey",
+    image: "/images/projects/bad_apple_suzanne.png",
+    href: "/projects/bad-apple-suzanne",
+  },
+  {
     id: "basilisk",
     title: "Basilisk Engine",
     description: "A 3D game engine built with Python and GLSL. Powers multiple award-winning games.",

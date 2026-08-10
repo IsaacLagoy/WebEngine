@@ -210,13 +210,14 @@ export default function WebGLCanvas({ sceneFactory, resolutionScale = 1.0, showF
           FPS: --
         </div>
       )}
-      {/* Loading overlay */}
-      <div
-        className={`absolute inset-0 bg-black transition-opacity duration-1000 ${
-          isLoading ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        style={{ zIndex: 1 }}
-      />
+      {/* Loading overlay — unmount when done. Opacity transitions via Tailwind can
+          fail to apply on first paint, which left a permanent black cover over the scene. */}
+      {isLoading && (
+        <div
+          className="absolute inset-0 bg-black"
+          style={{ zIndex: 1 }}
+        />
+      )}
     </div>
   );
 }

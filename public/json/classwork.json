@@ -83,6 +83,30 @@
         "subject": "CSCE",
         "course": 629,
         "description": "Concrete algorithm design and analysis; abstract models to analyze the complexity of problems; NP-Completeness; approximation and probabilistic algorithms."
-    }
+    },
     
+    {
+        "name": "Computer Graphics",
+        "subject": "CSCE",
+        "course": 411,
+        "description": "Principles of interactive computer graphics; 2-D and 3-D rendering pipelines, including geometric object and view transformations, projections, hidden surface removal, and rasterization; lighting models for local and global illumination; hierarchical models of 3-D objects; systems and libraries supporting display and user interaction."
+    },
+    {
+        "name": "Machine Learning",
+        "subject": "CSCE",
+        "course": 633,
+        "description": "Machine learning is the study of self-modifying computer systems that can acquire new knowledge and improve their own performance; survey machine learning techniques, which include induction from examples, conceptual clustering, explanation-based learning, exemplar learning and analogy, discovery and genetic algorithms."
+    },
+    {
+        "name": "Operating Systems",
+        "subject": "CSCE",
+        "course": 611,
+        "description": "Review of computer architecture hardware/software evolution leading to contemporary operating systems; basic operating systems concepts; methods of operating systems design and construction; algorithms for CPU scheduling memory and general resource allocation; process coordination and management; case studies of several operating systems; quality-of-services of operating systems and their impact on applications."
+    },
+    {
+        "name": "Introduction to Topology",
+        "subject": "MATH",
+        "course": 436,
+        "description": "Metric spaces; continuity of metric spaces; topological spaces; basic notions; separation axioms; compactness; local compactness; connectedness; basic notions in homotopy theory; quotient spaces, paracompactness and topological manifolds."
+    }
 ]

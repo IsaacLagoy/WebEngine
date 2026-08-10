@@ -1,10 +1,12 @@
 "use client";
 
 import { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import CampScene from "./CampScene";
 import IdleWrapper from "./IdleWrapper";
 import Header from "./Header";
+
+const CampScene = dynamic(() => import("./CampScene"), { ssr: false });
 
 const DISABLE_BACKGROUND_AND_IDLE: string[] = [
   "/games/matrix-stack",
@@ -24,7 +26,7 @@ export default function RootShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-0 w-screen h-screen">
+      <div className="fixed inset-0 z-0 w-screen h-screen bg-black">
         <CampScene />
       </div>
       <IdleWrapper idleTimeoutSeconds={300}>
