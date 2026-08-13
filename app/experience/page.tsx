@@ -59,6 +59,71 @@ export default function ExperiencePage() {
           </p>
         </section>
 
+        {/* Windhover Labs Section */}
+        <section>
+          <div className="mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              Windhover Labs
+            </h2>
+            <p className="text-white/60 text-xs md:text-sm">Summer 2026 Internship</p>
+          </div>
+          
+          <a href="https://windhoverlabs.com" target="_blank" rel="noopener noreferrer" className="block">
+            <Glass className="p-6 md:p-8 hover:bg-white/15 transition-all duration-300">
+              <div className="flex flex-col md:flex-row gap-6 md:gap-8 mb-6">
+                <div className="w-32 h-32 md:w-40 md:h-40 shrink-0 flex items-center justify-center">
+                  <img
+                    src="/graphics/experience/windhover_logo.svg"
+                    alt="Windhover Labs"
+                    className="max-w-full max-h-full object-contain opacity-90"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      if (target.parentElement) {
+                        target.parentElement.innerHTML = `<span class="text-white/50 text-2xl font-semibold">TAGD</span>`;
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white/85 text-base md:text-lg leading-relaxed">
+                    I worked at Windhover Labs during Summer 2026 for a software engineering internship. My major projects included a safety-critical multiplicative extended kalman filter and a terrain visualization program called Visage. I also worked on tasks like fixing things in the cFE apps, investigating drone swarm AI behaviors, and computer vision for drones. I had lots of fun working for them and believe they have lots of promise for building a great company.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <img 
+                  src="/images/projects/mekf.jpg" 
+                  alt="MEKF"
+                  className="w-full h-48 object-cover rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <img 
+                  src="/images/work/windhover_desk.png" 
+                  alt="Windhover Desk"
+                  className="w-full h-48 object-cover rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <img 
+                  src="/images/projects/visage.jpg" 
+                  alt="Visage"
+                  className="w-full h-48 object-cover rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+            </Glass>
+          </a>
+        </section>
+
         {/* iSTAR Section */}
         <section>
           <div className="mb-8">
@@ -92,9 +157,12 @@ export default function ExperiencePage() {
                 </div>
               </div>
               <div className="bg-white/10 rounded-lg p-5 md:p-6">
-                <h4 className="text-white font-semibold mb-3 text-base md:text-lg">Publication</h4>
+                <h4 className="text-white font-semibold mb-3 text-base md:text-lg">Publications</h4>
+                <p className="text-white/80 text-sm md:text-base mb-3">
+                  <span className="font-medium">Second Author, TPEC (Texas Power and Energy Conference) 2026:</span> "Evaluating Interpretable Kolmogorov–Arnold Network Controllers for Smart Grid Resilience"
+                </p>
                 <p className="text-white/80 text-sm md:text-base">
-                  <span className="font-medium">Second Author:</span> "Evaluating Interpretable Kolmogorov–Arnold Network Controllers for Smart Grid Resilience" in TPEC (Texas Power and Energy Conference) 2026
+                  <span className="font-medium">Second Author, SmartGridComm 2026:</span> "Causal-Structural Dynamic Graph Learning for Online Transient Stability Trajectory Prediction in Power Systems"
                 </p>
               </div>
             </Glass>
